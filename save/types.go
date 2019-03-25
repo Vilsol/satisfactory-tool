@@ -37,29 +37,17 @@ type EntityType struct {
 func ParseSaveComponentType(saveData []byte) (*SaveComponentType, int) {
 	padding := 0
 
-	classTypeLength := int(util.Int32(saveData[padding:]))
-	padding += 4
+	classType, strLen := util.Int32StringNull(saveData[padding:])
+	padding += 4 + strLen
 
-	classType := string(saveData[padding : padding+classTypeLength-1]) // Null termination
-	padding += classTypeLength
+	entityType, strLen := util.Int32StringNull(saveData[padding:])
+	padding += 4 + strLen
 
-	entityTypeLength := int(util.Int32(saveData[padding:]))
-	padding += 4
+	instanceType, strLen := util.Int32StringNull(saveData[padding:])
+	padding += 4 + strLen
 
-	entityType := string(saveData[padding : padding+entityTypeLength-1]) // Null termination
-	padding += entityTypeLength
-
-	instanceTypeLength := int(util.Int32(saveData[padding:]))
-	padding += 4
-
-	instanceType := string(saveData[padding : padding+instanceTypeLength-1]) // Null termination
-	padding += instanceTypeLength
-
-	parentEntityTypeLength := int(util.Int32(saveData[padding:]))
-	padding += 4
-
-	parentEntityType := string(saveData[padding : padding+parentEntityTypeLength-1]) // Null termination
-	padding += parentEntityTypeLength
+	parentEntityType, strLen := util.Int32StringNull(saveData[padding:])
+	padding += 4 + strLen
 
 	return &SaveComponentType{
 		ClassType:        classType,
@@ -72,23 +60,14 @@ func ParseSaveComponentType(saveData []byte) (*SaveComponentType, int) {
 func ParseEntityType(saveData []byte) (*EntityType, int) {
 	padding := 0
 
-	classTypeLength := int(util.Int32(saveData[padding:]))
-	padding += 4
+	classType, strLen := util.Int32StringNull(saveData[padding:])
+	padding += 4 + strLen
 
-	classType := string(saveData[padding : padding+classTypeLength-1]) // Null termination
-	padding += classTypeLength
+	entityType, strLen := util.Int32StringNull(saveData[padding:])
+	padding += 4 + strLen
 
-	entityTypeLength := int(util.Int32(saveData[padding:]))
-	padding += 4
-
-	entityType := string(saveData[padding : padding+entityTypeLength-1]) // Null termination
-	padding += entityTypeLength
-
-	instanceTypeLength := int(util.Int32(saveData[padding:]))
-	padding += 4
-
-	instanceType := string(saveData[padding : padding+instanceTypeLength-1]) // Null termination
-	padding += instanceTypeLength
+	instanceType, strLen := util.Int32StringNull(saveData[padding:])
+	padding += 4 + strLen
 
 	magicInt1 := util.Int32(saveData[padding:])
 	padding += 4

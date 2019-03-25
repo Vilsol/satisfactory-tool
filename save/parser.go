@@ -88,7 +88,7 @@ func ParseSave(path string) *SatisfactorySave {
 	padding += 4
 
 	for i := 0; i < extraWorldDataLength; i++ {
-		// fmt.Println(i)
+		fmt.Println("OBJECT:", i, padding)
 		length := int(util.Int32(saveData[padding:]))
 		padding += 4
 
