@@ -1,7 +1,7 @@
 package save
 
 import (
-	"fmt"
+	"github.com/sirupsen/logrus"
 	"satisfactory-tool/util"
 )
 
@@ -97,7 +97,7 @@ func ParseEntityType(saveData []byte) (*EntityType, int) {
 }
 
 func (saveComponentType *SaveComponentType) Parse(length int, data []byte) {
-	saveComponentType.Fields, _ = ReReadToZero(data)
+	saveComponentType.Fields, _ = ReReadToZero(data, 0)
 }
 
 func (entityType *EntityType) Parse(length int, data []byte) {
@@ -125,7 +125,7 @@ func (entityType *EntityType) Parse(length int, data []byte) {
 		entityType.Components = append(entityType.Components, []string{root, name})
 	}
 
-	innerValues, padded := ReadToNone(data[padding:])
+	innerValues, padded := ReadToNone(data[padding:], 0)
 	padding += padded
 
 	entityType.Fields = append(entityType.Fields, innerValues)
@@ -136,14 +136,14 @@ func (entityType *EntityType) Parse(length int, data []byte) {
 			padding += padded
 
 			if extraData == nil {
-				fmt.Printf("%5d %v\n", length-padding, entityType.ClassType)
+				logrus.Errorf("%v Did not process any data [%d]\n", entityType.ClassType, length-padding)
 			} else if length-padding > 4 {
-				fmt.Printf("%5d Did not read to end: %v\n", length-padding, entityType.ClassType)
+				logrus.Errorf("%v Did not read to end [%d]\n", entityType.ClassType, length-padding)
 			} else {
 				entityType.Extra = extraData
 			}
 		} else {
-			fmt.Printf("%v has >4 bytes left and is not handled as a special case!\n", entityType.ClassType)
+			logrus.Errorf("%v has >4 bytes [%d] left and is not handled as a special case!\n", entityType.ClassType, length-padding)
 		}
 	}
 }

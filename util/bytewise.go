@@ -36,18 +36,18 @@ func Int64(b []byte) int64 {
 
 func Vec3(b []byte) Vector3 {
 	return Vector3{
-		X: math.Float32frombits(binary.LittleEndian.Uint32(b[:4])),
-		Y: math.Float32frombits(binary.LittleEndian.Uint32(b[4:8])),
-		Z: math.Float32frombits(binary.LittleEndian.Uint32(b[8:12])),
+		X: Float32(b),
+		Y: Float32(b[4:]),
+		Z: Float32(b[8:]),
 	}
 }
 
 func Vec4(b []byte) Vector4 {
 	return Vector4{
-		X: math.Float32frombits(binary.LittleEndian.Uint32(b[:4])),
-		Y: math.Float32frombits(binary.LittleEndian.Uint32(b[4:8])),
-		Z: math.Float32frombits(binary.LittleEndian.Uint32(b[8:12])),
-		W: math.Float32frombits(binary.LittleEndian.Uint32(b[12:16])),
+		X: Float32(b),
+		Y: Float32(b[4:]),
+		Z: Float32(b[8:]),
+		W: Float32(b[12:]),
 	}
 }
 
@@ -57,4 +57,8 @@ func Int32StringNull(b []byte) (string, int) {
 		return "", strLength
 	}
 	return string(b[4 : 4+strLength-1 /* Null termination */]), strLength
+}
+
+func Float32(b []byte) float32 {
+	return math.Float32frombits(binary.LittleEndian.Uint32(b[:4]))
 }

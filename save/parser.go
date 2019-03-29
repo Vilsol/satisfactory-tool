@@ -1,7 +1,7 @@
 package save
 
 import (
-	"fmt"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"satisfactory-tool/util"
 	"strconv"
@@ -88,20 +88,19 @@ func ParseSave(path string) *SatisfactorySave {
 	padding += 4
 
 	for i := 0; i < extraWorldDataLength; i++ {
-		fmt.Println("OBJECT:", i, padding)
 		length := int(util.Int32(saveData[padding:]))
 		padding += 4
+		logrus.Info("Obj: ", i, " Pos: ", padding, " Len: ", length)
 
 		// fmt.Println(length)
-		// fmt.Printf("%#v\n", string(saveData[padding+46+81+43:padding+46+81+43+(1539-46-81-43)]))
 
-		worldData[i].Parse(length, saveData[padding:])
+		worldData[i].Parse(length, saveData[padding:padding+length])
 		padding += length
 		// fmt.Println(padding)
 	}
 
 	if len(saveData)-padding > 4 {
-		fmt.Printf("Extra at the end of the file: %5d: %#v, %#v\n", len(saveData)-padding, saveData[padding:padding+4], string(saveData[padding+4:padding+4+(len(saveData)-padding)]))
+		logrus.Errorf("Extra at the end of the file: %5d: %#v, %#v\n", len(saveData)-padding, saveData[padding:padding+4], string(saveData[padding+4:padding+4+(len(saveData)-padding)]))
 	}
 
 	return &SatisfactorySave{
