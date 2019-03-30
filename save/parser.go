@@ -8,16 +8,18 @@ import (
 )
 
 type SatisfactorySave struct {
-	SaveHeaderVersion int
-	SaveVersion       int
-	BuildVersion      int
-	LevelType         string
-	LevelOptions      string
-	SessionName       string
-	PlayTimeSeconds   int
-	SaveDate          int
-	SessionVisibility byte
-	WorldData         []Parsable
+	SaveHeaderVersion int              `json:"save_header_version"`
+	SaveVersion       int              `json:"save_version"`
+	BuildVersion      int              `json:"build_version"`
+	LevelType         string           `json:"level_type"`
+	LevelOptions      string           `json:"level_options"`
+	SessionName       string           `json:"session_name"`
+	PlayTimeSeconds   int              `json:"play_time_seconds"`
+	SaveDate          int              `json:"save_date"`
+	SessionVisibility byte             `json:"session_visibility"`
+	WorldData         []Parsable       `json:"world_data"`
+	ExtraObjects      []ObjectProperty `json:"extra_objects"`
+	Extra             *[]byte          `json:"extra,omitempty"`
 }
 
 const SaveComponentTypeID = 0x0
@@ -90,7 +92,7 @@ func ParseSave(path string) *SatisfactorySave {
 	for i := 0; i < extraWorldDataLength; i++ {
 		length := int(util.Int32(saveData[padding:]))
 		padding += 4
-		logrus.Info("Obj: ", i, " Pos: ", padding, " Len: ", length)
+		logrus.Infof("Obj: %d Pos: %#x Len: %d", i, padding, length)
 
 		// fmt.Println(length)
 
@@ -99,8 +101,29 @@ func ParseSave(path string) *SatisfactorySave {
 		// fmt.Println(padding)
 	}
 
-	if len(saveData)-padding > 4 {
-		logrus.Errorf("Extra at the end of the file: %5d: %#v, %#v\n", len(saveData)-padding, saveData[padding:padding+4], string(saveData[padding+4:padding+4+(len(saveData)-padding)]))
+	extraObjectCount := int(util.Int32(saveData[padding:]))
+	padding += 4
+
+	extraObjects := make([]ObjectProperty, extraObjectCount)
+
+	for i := 0; i < extraObjectCount; i++ {
+		world, strLength := util.Int32StringNull(saveData[padding:])
+		padding += 4 + strLength
+
+		class, strLength := util.Int32StringNull(saveData[padding:])
+		padding += 4 + strLength
+
+		extraObjects[i] = ObjectProperty{
+			World: world,
+			Class: class,
+		}
+	}
+
+	var extraData []byte
+
+	if len(saveData)-padding > 0 {
+		logrus.Errorf("Extra at the end of the file: %5d\n%s", len(saveData)-padding, util.HexDump(saveData[padding:]))
+		extraData = saveData[padding:]
 	}
 
 	return &SatisfactorySave{
@@ -114,5 +137,7 @@ func ParseSave(path string) *SatisfactorySave {
 		SaveDate:          saveDate,
 		SessionVisibility: sessionVisibility,
 		WorldData:         worldData,
+		ExtraObjects:      extraObjects,
+		Extra:             &extraData,
 	}
 }

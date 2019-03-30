@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func ResolveType(typeName string, data []byte, inArray bool, depth int) (interface{}, int, int) {
+func ResolveType(typeName string, data []byte, inArray bool, depth int) (ReadOrWritable, int, int) {
 	switch typeName {
 	case "StrProperty":
 		return ParseStringProperty(data)
@@ -38,7 +38,7 @@ func ResolveType(typeName string, data []byte, inArray bool, depth int) (interfa
 	panic("Don't know how to process: " + typeName)
 }
 
-func ParseProperty(data []byte, depth int) (string, string, int, interface{}, int, int) {
+func ParseProperty(data []byte, depth int) (string, string, int, ReadOrWritable, int, int) {
 	padding := 0
 
 	name, strLength := util.Int32StringNull(data[padding:])
@@ -72,6 +72,7 @@ func ParseIntProperty(data []byte, inArray bool) (int32, int, int) {
 	if inArray {
 		return util.Int32(data), 4, 4
 	}
+
 	return util.Int32(data[1:]), 5, 4
 }
 
@@ -79,7 +80,7 @@ func ParseBoolProperty(data []byte) (bool, int, int) {
 	return data[1] > 0, 2, 0
 }
 
-func ParseByteProperty(data []byte) (interface{}, int, int) {
+func ParseByteProperty(data []byte) (ByteProperty, int, int) {
 	padding := 0
 
 	enumType, strLength := util.Int32StringNull(data[padding:])
@@ -89,27 +90,35 @@ func ParseByteProperty(data []byte) (interface{}, int, int) {
 	padding += 1
 
 	if enumType == "None" {
-		return data[padding], padding + 1, 1
+		return ByteProperty{
+			Byte: data[padding],
+		}, padding + 1, 1
 	} else {
 		enumName, strLength := util.Int32StringNull(data[padding:])
 		padding += 4 + strLength
-		return enumType + ":" + enumName, padding, 4 + strLength
+		return ByteProperty{
+			EnumType: &enumType,
+			EnumName: &enumName,
+		}, padding, 4 + strLength
 	}
 }
 
-func ParseEnumProperty(data []byte) (string, int, int) {
+func ParseEnumProperty(data []byte) (EnumProperty, int, int) {
 	padding := 0
 
-	enumType, strLength := util.Int32StringNull(data[padding:])
+	enumProperty := EnumProperty{}
+
+	var strLength, enumNameLength int
+	enumProperty.Type, strLength = util.Int32StringNull(data[padding:])
 	padding += 4 + strLength
 
 	// Skip byte
 	padding += 1
 
-	enumName, enumNameLength := util.Int32StringNull(data[padding:])
+	enumProperty.Name, enumNameLength = util.Int32StringNull(data[padding:])
 	padding += 4 + enumNameLength
 
-	return enumType + ":" + enumName, padding, enumNameLength + 4
+	return enumProperty, padding, enumNameLength + 4
 }
 
 func ParseFloatProperty(data []byte) (float32, int, int) {
@@ -121,19 +130,23 @@ func ParseStringProperty(data []byte) (string, int, int) {
 	return str, 1 + 4 + strLength, 4 + strLength
 }
 
-func ParseTextProperty(data []byte) (string, int, int) {
+func ParseTextProperty(data []byte) (TextProperty, int, int) {
 	padding := 1
 
+	textProperty := TextProperty{}
+
 	// TODO Unknown
+	textProperty.Magic = data[padding : padding+13]
 	padding += 13
 
-	str, strLength := util.Int32StringNull(data[padding:])
+	var strLength int
+	textProperty.String, strLength = util.Int32StringNull(data[padding:])
 	padding += 4 + strLength
 
-	return str, padding, padding - 1
+	return textProperty, padding, padding - 1
 }
 
-func ParseObjectProperty(data []byte, inArray bool) ([]string, int, int) {
+func ParseObjectProperty(data []byte, inArray bool) (ObjectProperty, int, int) {
 	padding := 0
 	overhead := 0
 
@@ -141,16 +154,19 @@ func ParseObjectProperty(data []byte, inArray bool) ([]string, int, int) {
 		overhead += 1
 	}
 
-	string1, strLength := util.Int32StringNull(data[padding+overhead:])
+	objectProperty := ObjectProperty{}
+
+	var strLength int
+	objectProperty.World, strLength = util.Int32StringNull(data[padding+overhead:])
 	padding += 4 + strLength
 
-	string2, strLength := util.Int32StringNull(data[padding+overhead:])
+	objectProperty.Class, strLength = util.Int32StringNull(data[padding+overhead:])
 	padding += 4 + strLength
 
-	return []string{string1, string2}, padding + overhead, padding
+	return objectProperty, padding + overhead, padding
 }
 
-func ParseArrayProperty(data []byte, depth int) (interface{}, int, int) {
+func ParseArrayProperty(data []byte, depth int) (ArrayProperty, int, int) {
 	padding := 0
 
 	typeName, strLength := util.Int32StringNull(data[padding:])
@@ -163,6 +179,8 @@ func ParseArrayProperty(data []byte, depth int) (interface{}, int, int) {
 	padding += 4
 
 	var structName, structType, structClassType string
+	var structSize int
+	var magic1, magic2 []byte
 
 	beforePadding := padding
 
@@ -175,24 +193,23 @@ func ParseArrayProperty(data []byte, depth int) (interface{}, int, int) {
 		structType, strLength = util.Int32StringNull(data[padding:])
 		padding += 4 + strLength
 
-		// structSize := int(util.Int32(data[padding:]))
+		structSize = int(util.Int32(data[padding:]))
 		padding += 4
 
 		// TODO Unknown
+		magic1 = data[padding : padding+4]
 		padding += 4
 
 		structClassType, strLength = util.Int32StringNull(data[padding:])
 		padding += 4 + strLength
 
-		// fmt.Println(structName, structType, structClassType)
-
 		// TODO Unknown
+		magic1 = data[padding : padding+17]
 		padding += 17
 	}
 
-	var values []interface{}
+	var values []ReadOrWritable
 	valueSizes := padding - beforePadding
-	// fmt.Println(valueSizes)
 
 	for i := 0; i < valueCount; i++ {
 		if typeName == "StructProperty" {
@@ -208,41 +225,51 @@ func ParseArrayProperty(data []byte, depth int) (interface{}, int, int) {
 		}
 	}
 
-	// fmt.Println(valueSizes, padding, valueCount)
-
 	if typeName == "StructProperty" {
-		return map[string]interface{}{
-			"type":            typeName,
-			"values":          values,
-			"structName":      structName,
-			"structType":      structType,
-			"structClassType": structClassType,
+		return ArrayProperty{
+			Type:            typeName,
+			Values:          values,
+			StructName:      &structName,
+			StructType:      &structType,
+			StructSize:      &structSize,
+			Magic1:          &magic1,
+			StructClassType: &structClassType,
+			Magic2:          &magic2,
 		}, padding, valueSizes + 4
 	}
 
-	return map[string]interface{}{
-		"type":   typeName,
-		"values": values,
+	return ArrayProperty{
+		Type:   typeName,
+		Values: values,
 	}, padding, valueSizes + 4
 }
 
-func ParseStructProperty(data []byte, arrayTypeName *string, depth int) (interface{}, int, int) {
+func ParseStructProperty(data []byte, arrayTypeName *string, depth int) (StructProperty, int, int) {
 	padding := 0
 
 	var typeName string
+	var magic []byte
 
 	if arrayTypeName == nil {
 		newTypeName, strLength := util.Int32StringNull(data[padding:])
 		padding += 4 + strLength
 		typeName = newTypeName
 
-		// Skip 4 x int32 + 1 byte TODO Unknown
+		// TODO Unknown
+		magic = data[padding : padding+17]
 		padding += 17
 	} else {
 		typeName = *arrayTypeName
 	}
 
 	logrus.Debug(strings.Repeat(" ", depth), typeName)
+
+	structProperty := StructProperty{
+		Type:  typeName,
+		Magic: &magic,
+	}
+
+	beforePadding := padding
 
 	switch typeName {
 	case "Vector":
@@ -251,34 +278,46 @@ func ParseStructProperty(data []byte, arrayTypeName *string, depth int) (interfa
 		vec3 := util.Vec3(data[padding:])
 		padding += 12
 
-		return map[string]interface{}{
-			"type": typeName,
-			"x":    vec3.X,
-			"y":    vec3.Y,
-			"z":    vec3.Z,
-		}, padding, 12
+		structProperty.Value = map[string]interface{}{
+			"x": vec3.X,
+			"y": vec3.Y,
+			"z": vec3.Z,
+		}
+
+		return structProperty, padding, padding - beforePadding
+	case "Color":
+		structProperty.Value = map[string]interface{}{
+			"r": data[padding],
+			"g": data[padding+1],
+			"b": data[padding+2],
+			"a": data[padding+3],
+		}
+
+		return structProperty, padding + 4, 4
 	case "LinearColor":
 		vec4 := util.Vec4(data[padding:])
 		padding += 16
 
-		return map[string]interface{}{
-			"type": typeName,
-			"r":    vec4.X,
-			"g":    vec4.Y,
-			"b":    vec4.Z,
-			"a":    vec4.W,
-		}, padding, 16
+		structProperty.Value = map[string]interface{}{
+			"r": vec4.X,
+			"g": vec4.Y,
+			"b": vec4.Z,
+			"a": vec4.W,
+		}
+
+		return structProperty, padding, padding - beforePadding
 	case "Quat":
 		vec4 := util.Vec4(data[padding:])
 		padding += 16
 
-		return map[string]interface{}{
-			"type": typeName,
-			"a":    vec4.X,
-			"b":    vec4.Y,
-			"c":    vec4.Z,
-			"d":    vec4.W,
-		}, padding, 16
+		structProperty.Value = map[string]interface{}{
+			"a": vec4.X,
+			"b": vec4.Y,
+			"c": vec4.Z,
+			"d": vec4.W,
+		}
+
+		return structProperty, padding, padding - beforePadding
 	case "Box":
 		min := util.Vec3(data[padding:])
 		padding += 12
@@ -289,15 +328,14 @@ func ParseStructProperty(data []byte, arrayTypeName *string, depth int) (interfa
 		valid := data[padding]
 		padding += 1
 
-		return map[string]interface{}{
-			"type":  typeName,
+		structProperty.Value = map[string]interface{}{
 			"min":   min,
 			"max":   max,
 			"valid": valid,
-		}, padding, 25
-	case "InventoryItem":
-		beforePadding := padding
+		}
 
+		return structProperty, padding, padding - beforePadding
+	case "InventoryItem":
 		magic, strLength := util.Int32StringNull(data[padding:])
 		padding += 4 + strLength
 
@@ -312,17 +350,16 @@ func ParseStructProperty(data []byte, arrayTypeName *string, depth int) (interfa
 
 		values, _ := ReadToNone(data[padding:], depth+1)
 
-		return map[string]interface{}{
-			"type":      typeName,
+		structProperty.Value = map[string]interface{}{
 			"magic":     magic,
 			"itemName":  itemName,
 			"levelName": levelName,
 			"pathName":  pathName,
 			"values":    values,
-		}, padding, padding - beforePadding
-	case "RailroadTrackPosition":
-		beforePadding := padding
+		}
 
+		return structProperty, padding, padding - beforePadding
+	case "RailroadTrackPosition":
 		world, strLength := util.Int32StringNull(data[padding:])
 		padding += 4 + strLength
 
@@ -335,13 +372,20 @@ func ParseStructProperty(data []byte, arrayTypeName *string, depth int) (interfa
 		forward := util.Float32(data[padding:])
 		padding += 4
 
-		return map[string]interface{}{
-			"type":       typeName,
+		structProperty.Value = map[string]interface{}{
 			"world":      world,
 			"entityType": entityType,
 			"offset":     offset,
 			"forward":    forward,
-		}, padding, padding - beforePadding
+		}
+
+		return structProperty, padding, padding - beforePadding
+	case "SplitterSortRule":
+		fallthrough
+	case "SchematicCost":
+		fallthrough
+	case "ResearchTime":
+		fallthrough
 	case "FeetOffset":
 		fallthrough
 	case "TimeTableStop":
@@ -372,22 +416,19 @@ func ParseStructProperty(data []byte, arrayTypeName *string, depth int) (interfa
 		values, valueSize := ReadToNone(data[padding:], depth+1)
 		padding += valueSize
 
-		return map[string]interface{}{
-			"type":   typeName,
+		structProperty.Value = map[string]interface{}{
 			"values": values,
-		}, padding, valueSize
+		}
+
+		return structProperty, padding, valueSize
 	}
 
-	// fmt.Println(padding)
-	// fmt.Printf("%#v\n", string(data[padding:padding+100]))
+	logrus.Panicf("Unknown struct: %s - %#v\n", typeName, string(data[padding:]))
 
-	logrus.Panic("Unknown struct: " + typeName)
-
-	// fmt.Println("Unknown struct: " + typeName)
-	return nil, 0, 0
+	panic(1) // Logrus will panic for us
 }
 
-func ParseMapProperty(data []byte, depth int) (interface{}, int, int) {
+func ParseMapProperty(data []byte, depth int) (MapProperty, int, int) {
 	padding := 0
 
 	keyType, strLength := util.Int32StringNull(data[padding:])
@@ -396,12 +437,13 @@ func ParseMapProperty(data []byte, depth int) (interface{}, int, int) {
 	valueType, strLength := util.Int32StringNull(data[padding:])
 	padding += 4 + strLength
 
-	// TODO Unknown
+	// Skip byte
 	padding += 1
 
 	beforePadding := padding
 
 	// TODO Unknown
+	magic := data[padding : padding+4]
 	padding += 4
 
 	pairCount := int(util.Int32(data[padding:]))
@@ -413,30 +455,17 @@ func ParseMapProperty(data []byte, depth int) (interface{}, int, int) {
 		key, keySize, _ := ResolveType(keyType, data[padding:], true, depth+1)
 		padding += keySize
 
-		name := ""
-		innerValues := make([]map[string]interface{}, 0)
-
-		for name != "None" {
-			propName, typeName, _, value, _, padded := ParseProperty(data[padding:], depth+1)
-			name = propName
-			padding += padded
-
-			if propName != "None" {
-				innerValues = append(innerValues, map[string]interface{}{
-					"name":  propName,
-					"type":  typeName,
-					"value": value,
-				})
-			}
-		}
+		innerValues, padded := ReadToNone(data[padding:], depth+1)
+		padding += padded
 
 		// JSON Compatibility
 		values[fmt.Sprintf("%v", key)] = innerValues
 	}
 
-	return map[string]interface{}{
-		"keyType":   keyType,
-		"valueType": valueType,
-		"values":    values,
+	return MapProperty{
+		KeyType:   keyType,
+		ValueType: valueType,
+		Magic:     magic,
+		Values:    values,
 	}, padding, padding - beforePadding
 }

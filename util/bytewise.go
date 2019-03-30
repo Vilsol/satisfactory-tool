@@ -2,7 +2,9 @@ package util
 
 import (
 	"encoding/binary"
+	"fmt"
 	"math"
+	"strconv"
 )
 
 type Vector3 struct {
@@ -61,4 +63,36 @@ func Int32StringNull(b []byte) (string, int) {
 
 func Float32(b []byte) float32 {
 	return math.Float32frombits(binary.LittleEndian.Uint32(b[:4]))
+}
+
+func HexDump(data []byte) string {
+	result := ""
+
+	perRow := 32
+	rows := int(math.Ceil(float64(len(data)) / float64(perRow)))
+
+	rowWidth := perRow * 5
+	if len(data) < perRow {
+		rowWidth = len(data) * 5
+	}
+
+	for i := 0; i < rows; i++ {
+		hexSide := ""
+		charSide := ""
+		for k := 0; k < perRow && k < len(data[i*perRow:]); k++ {
+			hexSide += fmt.Sprintf("%#-4x", data[i*perRow+k]) + " "
+			charSide += fmt.Sprintf("%s", safeChar(data[i*perRow+k]))
+		}
+		result += fmt.Sprintf("%-#6x: %-"+strconv.Itoa(rowWidth)+"s%s\n", i*perRow, hexSide, charSide)
+	}
+
+	return result
+}
+
+func safeChar(char byte) string {
+	if char <= 0x1F {
+		return "."
+	}
+
+	return string(char)
 }

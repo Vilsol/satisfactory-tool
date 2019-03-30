@@ -13,7 +13,7 @@ func main() {
 	flag.Parse()
 
 	// TODO Convert to flag or env param
-	logrus.SetLevel(logrus.TraceLevel)
+	logrus.SetLevel(logrus.WarnLevel)
 	logrus.SetOutput(os.Stdout)
 	logrus.SetFormatter(&logrus.TextFormatter{
 		ForceColors:            true,

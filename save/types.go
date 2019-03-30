@@ -10,28 +10,27 @@ type Parsable interface {
 }
 
 type SaveComponentType struct {
-	ClassType        string
-	EntityType       string
-	InstanceType     string
-	ParentEntityType string
-	Fields           [][]map[string]interface{}
-	// SaveObjectCount  int32
+	ClassType        string                   `json:"class_type"`
+	EntityType       string                   `json:"entity_type"`
+	InstanceType     string                   `json:"instance_type"`
+	ParentEntityType string                   `json:"parent_entity_type"`
+	Fields           []map[string]interface{} `json:"fields"`
 }
 
 type EntityType struct {
-	ClassType        string
-	EntityType       string
-	InstanceType     string
-	MagicInt1        int32
-	MagicInt2        int32
-	Rotation         util.Vector4
-	Position         util.Vector3
-	Scale            util.Vector3
-	ParentObjectRoot string
-	ParentObjectName string
-	Components       [][]string
-	Fields           [][]map[string]interface{}
-	Extra            interface{}
+	ClassType        string                   `json:"class_type"`
+	EntityType       string                   `json:"entity_type"`
+	InstanceType     string                   `json:"instance_type"`
+	MagicInt1        int32                    `json:"magic_int_1"`
+	MagicInt2        int32                    `json:"magic_int_2"`
+	Rotation         util.Vector4             `json:"rotation"`
+	Position         util.Vector3             `json:"position"`
+	Scale            util.Vector3             `json:"scale"`
+	ParentObjectRoot string                   `json:"parent_object_root"`
+	ParentObjectName string                   `json:"parent_object_name"`
+	Components       [][]string               `json:"components"`
+	Fields           []map[string]interface{} `json:"fields"`
+	Extra            interface{}              `json:"extra,omitempty"`
 }
 
 func ParseSaveComponentType(saveData []byte) (*SaveComponentType, int) {
@@ -97,7 +96,13 @@ func ParseEntityType(saveData []byte) (*EntityType, int) {
 }
 
 func (saveComponentType *SaveComponentType) Parse(length int, data []byte) {
-	saveComponentType.Fields, _ = ReReadToZero(data, 0)
+	padding := 0
+
+	saveComponentType.Fields, padding = ReadToNone(data, 0)
+
+	if length-padding > 4 {
+		logrus.Errorf("%v has >4 bytes [%d] left and is not handled as a special case!\n", saveComponentType.ClassType, length-padding)
+	}
 }
 
 func (entityType *EntityType) Parse(length int, data []byte) {
@@ -122,13 +127,12 @@ func (entityType *EntityType) Parse(length int, data []byte) {
 		name, strLength := util.Int32StringNull(data[padding:])
 		padding += 4 + strLength
 
-		entityType.Components = append(entityType.Components, []string{root, name})
+		entityType.Components[i] = []string{root, name}
 	}
 
-	innerValues, padded := ReadToNone(data[padding:], 0)
+	var padded int
+	entityType.Fields, padded = ReadToNone(data[padding:], 0)
 	padding += padded
-
-	entityType.Fields = append(entityType.Fields, innerValues)
 
 	if length-padding > 4 {
 		if specialFunc, ok := specialClasses[entityType.ClassType]; ok {
@@ -141,9 +145,12 @@ func (entityType *EntityType) Parse(length int, data []byte) {
 				logrus.Errorf("%v Did not read to end [%d]\n", entityType.ClassType, length-padding)
 			} else {
 				entityType.Extra = extraData
+				return
 			}
 		} else {
 			logrus.Errorf("%v has >4 bytes [%d] left and is not handled as a special case!\n", entityType.ClassType, length-padding)
 		}
 	}
+
+	entityType.Extra = data[padding:]
 }
