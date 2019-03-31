@@ -24,7 +24,7 @@ func main() {
 
 	satisfactorySave := save.ParseSave(flag.Arg(0))
 
-	bytes, err := json.Marshal(satisfactorySave)
+	bytes, err := json.MarshalIndent(satisfactorySave, "", "  ")
 
 	if err != nil {
 		logrus.Panic(err)
