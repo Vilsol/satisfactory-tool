@@ -35,7 +35,9 @@ func ResolveType(typeName string, data []byte, inArray bool, depth int) (ReadOrW
 		return ParseStructProperty(data, nil, depth)
 	}
 
-	panic("Don't know how to process: " + typeName)
+	logrus.Panic("Don't know how to process: " + typeName)
+
+	panic(1) // Logrus will panic for us
 }
 
 func ParseProperty(data []byte, depth int) (string, string, int, ReadOrWritable, int, int) {

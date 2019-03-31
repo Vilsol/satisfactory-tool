@@ -8,18 +8,18 @@ import (
 )
 
 type SatisfactorySave struct {
-	SaveHeaderVersion int              `json:"save_header_version"`
-	SaveVersion       int              `json:"save_version"`
-	BuildVersion      int              `json:"build_version"`
-	LevelType         string           `json:"level_type"`
-	LevelOptions      string           `json:"level_options"`
-	SessionName       string           `json:"session_name"`
-	PlayTimeSeconds   int              `json:"play_time_seconds"`
-	SaveDate          int              `json:"save_date"`
-	SessionVisibility byte             `json:"session_visibility"`
-	WorldData         []Parsable       `json:"world_data"`
-	ExtraObjects      []ObjectProperty `json:"extra_objects"`
-	Extra             *[]byte          `json:"extra,omitempty"`
+	SaveHeaderVersion int               `json:"save_header_version"`
+	SaveVersion       int               `json:"save_version"`
+	BuildVersion      int               `json:"build_version"`
+	LevelType         string            `json:"level_type"`
+	LevelOptions      string            `json:"level_options"`
+	SessionName       string            `json:"session_name"`
+	PlayTimeSeconds   int               `json:"play_time_seconds"`
+	SaveDate          int               `json:"save_date"`
+	SessionVisibility byte              `json:"session_visibility"`
+	WorldData         []ParsableWrapper `json:"world_data"`
+	ExtraObjects      []ObjectProperty  `json:"extra_objects"`
+	Extra             *[]byte           `json:"extra,omitempty"`
 }
 
 const SaveComponentTypeID = 0x0
@@ -29,7 +29,7 @@ func ParseSave(path string) *SatisfactorySave {
 	saveData, err := ioutil.ReadFile(path)
 
 	if err != nil {
-		panic(err)
+		logrus.Panic(err)
 	}
 
 	padding := 0
@@ -64,7 +64,7 @@ func ParseSave(path string) *SatisfactorySave {
 	worldDataLength := int(util.Int32(saveData[padding:]))
 	padding += 4
 
-	worldData := make([]Parsable, worldDataLength)
+	worldData := make([]ParsableWrapper, worldDataLength)
 
 	for i := 0; i < worldDataLength; i++ {
 		dataType := int(util.Int32(saveData[padding:]))
@@ -74,15 +74,21 @@ func ParseSave(path string) *SatisfactorySave {
 		case SaveComponentTypeID:
 			saveComponentType, padded := ParseSaveComponentType(saveData[padding:])
 			padding += padded
-			worldData[i] = saveComponentType
+			worldData[i] = ParsableWrapper{
+				Type: "save",
+				Data: saveComponentType,
+			}
 			break
 		case EntityTypeID:
 			entityType, padded := ParseEntityType(saveData[padding:])
 			padding += padded
-			worldData[i] = entityType
+			worldData[i] = ParsableWrapper{
+				Type: "entity",
+				Data: entityType,
+			}
 			break
 		default:
-			panic("Unknown type: " + strconv.Itoa(dataType))
+			logrus.Panic("Unknown type: " + strconv.Itoa(dataType))
 		}
 	}
 
@@ -96,7 +102,7 @@ func ParseSave(path string) *SatisfactorySave {
 
 		// fmt.Println(length)
 
-		worldData[i].Parse(length, saveData[padding:padding+length])
+		worldData[i].Data.Parse(length, saveData[padding:padding+length])
 		padding += length
 		// fmt.Println(padding)
 	}

@@ -1,9 +1,51 @@
 package save
 
 import (
+	"encoding/json"
 	"github.com/sirupsen/logrus"
 	"satisfactory-tool/util"
 )
+
+type ParsableWrapper struct {
+	Type string   `json:"type"`
+	Data Parsable `json:"data"`
+}
+
+func (wrapper *ParsableWrapper) UnmarshalJSON(b []byte) error {
+	var temp map[string]json.RawMessage
+	err := json.Unmarshal(b, &temp)
+
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(temp["type"], &wrapper.Type)
+
+	if err != nil {
+		return err
+	}
+
+	switch wrapper.Type {
+	case "save":
+		data := SaveComponentType{}
+		err = json.Unmarshal(temp["data"], &data)
+		wrapper.Data = &data
+		break
+	case "entity":
+		data := EntityType{}
+		err = json.Unmarshal(temp["data"], &data)
+		wrapper.Data = &data
+		break
+	default:
+		logrus.Panic("Unknown Type: " + wrapper.Type)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 type Parsable interface {
 	Parse(length int, data []byte)
