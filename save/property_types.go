@@ -1,5 +1,20 @@
 package save
 
+import (
+	"encoding/json"
+	"errors"
+	"github.com/sirupsen/logrus"
+	"satisfactory-tool/util"
+)
+
+type Property struct {
+	Name  string         `json:"name"`
+	Type  string         `json:"type"`
+	Index int32          `json:"index"`
+	Size  int32          `json:"size"`
+	Value ReadOrWritable `json:"value"`
+}
+
 type ReadOrWritable interface {
 }
 
@@ -7,12 +22,12 @@ type ArrayProperty struct {
 	Type   string           `json:"type"`
 	Values []ReadOrWritable `json:"values"`
 
-	StructName      *string `json:"struct_name,omitempty"`
-	StructType      *string `json:"struct_type,omitempty"`
-	StructSize      *int    `json:"struct_size,omitempty"`
-	Magic1          *[]byte `json:"magic_1,omitempty"`
-	StructClassType *string `json:"struct_class_type,omitempty"`
-	Magic2          *[]byte `json:"magic_2,omitempty"`
+	StructName      string `json:"struct_name,omitempty"`
+	StructType      string `json:"struct_type,omitempty"`
+	StructSize      int32  `json:"struct_size,omitempty"`
+	Magic1          []byte `json:"magic_1,omitempty"`
+	StructClassType string `json:"struct_class_type,omitempty"`
+	Magic2          []byte `json:"magic_2,omitempty"`
 }
 
 type StructProperty struct {
@@ -21,11 +36,16 @@ type StructProperty struct {
 	Value ReadOrWritable `json:"value"`
 }
 
+type MapEntry struct {
+	Key   ReadOrWritable `json:"key"`
+	Value []Property     `json:"value"`
+}
+
 type MapProperty struct {
-	KeyType   string                              `json:"key_type"`
-	ValueType string                              `json:"value_type"`
-	Magic     []byte                              `json:"magic"`
-	Values    map[string][]map[string]interface{} `json:"values"`
+	KeyType   string     `json:"key_type"`
+	ValueType string     `json:"value_type"`
+	Magic     []byte     `json:"magic"`
+	Values    []MapEntry `json:"values"`
 }
 
 type ObjectProperty struct {
@@ -44,8 +64,344 @@ type EnumProperty struct {
 }
 
 type ByteProperty struct {
-	Byte byte `json:"byte"`
-
-	EnumType *string `json:"enum_type,omitempty"`
+	EnumType string  `json:"enum_type,omitempty"`
+	Byte     byte    `json:"byte"`
 	EnumName *string `json:"enum_name,omitempty"`
+}
+
+func (wrapper *Property) UnmarshalJSON(b []byte) error {
+	var temp map[string]json.RawMessage
+	err := json.Unmarshal(b, &temp)
+
+	if err != nil {
+		return err
+	}
+
+	_ = json.Unmarshal(temp["name"], &wrapper.Name)
+	_ = json.Unmarshal(temp["type"], &wrapper.Type)
+	_ = json.Unmarshal(temp["index"], &wrapper.Index)
+	_ = json.Unmarshal(temp["size"], &wrapper.Size)
+
+	wrapper.Value, err = UnwrapProperty(wrapper.Type, temp["value"])
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (wrapper *ArrayProperty) UnmarshalJSON(b []byte) error {
+	var temp map[string]json.RawMessage
+	err := json.Unmarshal(b, &temp)
+
+	if err != nil {
+		return err
+	}
+
+	_ = json.Unmarshal(temp["type"], &wrapper.Type)
+	_ = json.Unmarshal(temp["struct_name"], &wrapper.StructName)
+	_ = json.Unmarshal(temp["struct_type"], &wrapper.StructType)
+	_ = json.Unmarshal(temp["struct_size"], &wrapper.StructSize)
+	_ = json.Unmarshal(temp["magic_1"], &wrapper.Magic1)
+	_ = json.Unmarshal(temp["struct_class_type"], &wrapper.StructClassType)
+	_ = json.Unmarshal(temp["magic_2"], &wrapper.Magic2)
+
+	var tempArray []json.RawMessage
+	_ = json.Unmarshal(temp["values"], &tempArray)
+
+	wrapper.Values = make([]ReadOrWritable, len(tempArray))
+
+	for i := 0; i < len(wrapper.Values); i++ {
+		wrapper.Values[i], err = UnwrapProperty(wrapper.Type, tempArray[i])
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func UnwrapProperty(propertyType string, data []byte) (interface{}, error) {
+	switch propertyType {
+	case "ArrayProperty":
+		prop := ArrayProperty{}
+		err := json.Unmarshal(data, &prop)
+		return &prop, err
+	case "StructProperty":
+		prop := StructProperty{}
+		err := json.Unmarshal(data, &prop)
+		return &prop, err
+	case "MapProperty":
+		prop := MapProperty{}
+		err := json.Unmarshal(data, &prop)
+		return &prop, err
+	case "ObjectProperty":
+		prop := ObjectProperty{}
+		err := json.Unmarshal(data, &prop)
+		return &prop, err
+	case "TextProperty":
+		prop := TextProperty{}
+		err := json.Unmarshal(data, &prop)
+		return &prop, err
+	case "EnumProperty":
+		prop := EnumProperty{}
+		err := json.Unmarshal(data, &prop)
+		return &prop, err
+	case "ByteProperty":
+		prop := ByteProperty{}
+		err := json.Unmarshal(data, &prop)
+		return &prop, err
+	case "FloatProperty":
+		prop := float32(0)
+		err := json.Unmarshal(data, &prop)
+		return &prop, err
+	case "IntProperty":
+		prop := int32(0)
+		err := json.Unmarshal(data, &prop)
+		return &prop, err
+	case "Int8Property":
+		prop := int8(0)
+		err := json.Unmarshal(data, &prop)
+		return &prop, err
+	case "BoolProperty":
+		prop := false
+		err := json.Unmarshal(data, &prop)
+		return &prop, err
+	case "StrProperty":
+		fallthrough
+	case "NameProperty":
+		prop := ""
+		err := json.Unmarshal(data, &prop)
+		return &prop, err
+	default:
+		return nil, errors.New("Unknown Property Type: " + propertyType)
+	}
+}
+
+type Color struct {
+	R byte `json:"r"`
+	G byte `json:"g"`
+	B byte `json:"b"`
+	A byte `json:"a"`
+}
+
+type LinearColor struct {
+	R float32 `json:"r"`
+	G float32 `json:"g"`
+	B float32 `json:"b"`
+	A float32 `json:"a"`
+}
+
+type Box struct {
+	Min   util.Vector3 `json:"min"`
+	Max   util.Vector3 `json:"max"`
+	Valid byte         `json:"valid"`
+}
+
+type InventoryItem struct {
+	Magic     string `json:"magic"`
+	ItemName  string `json:"item_name"`
+	LevelName string `json:"level_name"`
+	PathName  string `json:"path_name"`
+}
+
+type RailroadTrackPosition struct {
+	World      string  `json:"world"`
+	EntityType string  `json:"entity_type"`
+	Offset     float32 `json:"offset"`
+	Forward    float32 `json:"forward"`
+}
+
+type GenericStruct struct {
+	Values []Property `json:"values"`
+}
+
+func (wrapper *StructProperty) UnmarshalJSON(b []byte) error {
+	var temp map[string]json.RawMessage
+	err := json.Unmarshal(b, &temp)
+
+	if err != nil {
+		return err
+	}
+
+	_ = json.Unmarshal(temp["type"], &wrapper.Type)
+	_ = json.Unmarshal(temp["magic"], &wrapper.Magic)
+
+	switch wrapper.Type {
+	case "Vector":
+		fallthrough
+	case "Rotator":
+		data := util.Vector3{}
+		err = json.Unmarshal(temp["value"], &data)
+		wrapper.Value = data
+		break
+	case "Color":
+		data := Color{}
+		err = json.Unmarshal(temp["value"], &data)
+		wrapper.Value = data
+		break
+	case "LinearColor":
+		data := LinearColor{}
+		err = json.Unmarshal(temp["value"], &data)
+		wrapper.Value = data
+		break
+	case "Quat":
+		data := util.Vector4{}
+		err = json.Unmarshal(temp["value"], &data)
+		wrapper.Value = data
+		break
+	case "Box":
+		data := Box{}
+		err = json.Unmarshal(temp["value"], &data)
+		wrapper.Value = data
+		break
+	case "InventoryItem":
+		data := InventoryItem{}
+		err = json.Unmarshal(temp["value"], &data)
+		wrapper.Value = data
+		break
+	case "RailroadTrackPosition":
+		data := RailroadTrackPosition{}
+		err = json.Unmarshal(temp["value"], &data)
+		wrapper.Value = data
+		break
+	case "SplitterSortRule":
+		fallthrough
+	case "SchematicCost":
+		fallthrough
+	case "ResearchTime":
+		fallthrough
+	case "FeetOffset":
+		fallthrough
+	case "TimeTableStop":
+		fallthrough
+	case "RemovedInstance":
+		fallthrough
+	case "SpawnData":
+		fallthrough
+	case "MessageData":
+		fallthrough
+	case "ItemFoundData":
+		fallthrough
+	case "CompletedResearch":
+		fallthrough
+	case "ResearchCost":
+		fallthrough
+	case "PhaseCost":
+		fallthrough
+	case "ItemAmount":
+		fallthrough
+	case "SplinePointData":
+		fallthrough
+	case "InventoryStack":
+		fallthrough
+	case "RemovedInstanceArray":
+		fallthrough
+	case "Transform":
+		data := GenericStruct{}
+		err = json.Unmarshal(temp["value"], &data)
+		wrapper.Value = data
+		break
+	default:
+		logrus.Panic("Unknown Type: " + wrapper.Type)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type BP_CircuitSubsystem_C_Circuit struct {
+	Magic  []byte `json:"magic"`
+	World  string `json:"world"`
+	Entity string `json:"entity"`
+}
+
+type BP_CircuitSubsystem_C struct {
+	Magic    []byte                          `json:"magic"`
+	Circuits []BP_CircuitSubsystem_C_Circuit `json:"circuits"`
+}
+
+type BP_GameMode_C struct {
+	Magic   []byte           `json:"magic"`
+	Objects []ObjectProperty `json:"objects"`
+}
+
+type BP_GameState_C struct {
+	Magic   []byte           `json:"magic"`
+	Objects []ObjectProperty `json:"objects"`
+}
+
+type BP_RailroadSubsystem_C_Train struct {
+	Magic           []byte `json:"magic"`
+	World           string `json:"world"`
+	Entity          string `json:"entity"`
+	WorldSecond     string `json:"world_second"`
+	EntitySecond    string `json:"entity_second"`
+	WorldTimetable  string `json:"world_timetable"`
+	EntityTimetable string `json:"entity_timetable"`
+}
+
+type BP_RailroadSubsystem_C struct {
+	Magic  []byte                         `json:"magic"`
+	Trains []BP_RailroadSubsystem_C_Train `json:"trains"`
+}
+
+type Build_PowerLine_C struct {
+	Values       []Property `json:"values"`
+	SourceWorld  string     `json:"source_world"`
+	SourceEntity string     `json:"source_entity"`
+	TargetWorld  string     `json:"target_world"`
+	TargetEntity string     `json:"target_entity"`
+}
+
+type BP_PlayerState_C struct {
+	Magic  []byte       `json:"magic"`
+	Values [][]Property `json:"values"`
+}
+
+type BP_FreightWagon_C struct {
+	Magic        []byte `json:"magic"`
+	BeforeWorld  string `json:"before_world"`
+	BeforeEntity string `json:"before_entity"`
+	FrontWorld   string `json:"front_world"`
+	FrontEntity  string `json:"front_entity"`
+}
+
+type BP_Locomotive_C struct {
+	Magic        []byte `json:"magic"`
+	BeforeWorld  string `json:"before_world"`
+	BeforeEntity string `json:"before_entity"`
+	FrontWorld   string `json:"front_world"`
+	FrontEntity  string `json:"front_entity"`
+}
+
+type BP_Generic struct {
+	Values [][]Property `json:"values"`
+}
+
+type BP_Vehicle_Object struct {
+	Name  string `json:"name"`
+	Magic []byte `json:"magic"`
+}
+
+type BP_Vehicle struct {
+	Magic   []byte              `json:"magic"`
+	Objects []BP_Vehicle_Object `json:"objects"`
+}
+
+type BP_Belt_Item struct {
+	Magic1 []byte `json:"magic_1"`
+	Name   string `json:"name"`
+	Magic2 []byte `json:"magic_2"`
+}
+
+type BP_Belt struct {
+	Values [][]Property   `json:"values"`
+	Magic  []byte         `json:"magic"`
+	Items  []BP_Belt_Item `json:"items"`
 }

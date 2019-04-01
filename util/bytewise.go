@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math"
@@ -8,16 +9,16 @@ import (
 )
 
 type Vector3 struct {
-	X float32
-	Y float32
-	Z float32
+	X float32 `json:"x"`
+	Y float32 `json:"y"`
+	Z float32 `json:"z"`
 }
 
 type Vector4 struct {
-	X float32
-	Y float32
-	Z float32
-	W float32
+	X float32 `json:"x"`
+	Y float32 `json:"y"`
+	Z float32 `json:"z"`
+	W float32 `json:"w"`
 }
 
 func Int16(b []byte) int16 {
@@ -61,6 +62,225 @@ func Int32StringNull(b []byte) (string, int) {
 	return string(b[4 : 4+strLength-1 /* Null termination */]), strLength
 }
 
+func WriteInt32StringNull(data string, buf *bytes.Buffer) int {
+	nulled := 1
+	if len(data) == 0 {
+		nulled = 0
+	}
+
+	err := binary.Write(buf, binary.LittleEndian, int32(len(data)+nulled)) // Null termination
+
+	if err != nil {
+		panic(err)
+	}
+
+	if nulled == 1 {
+		_, err = buf.WriteString(data)
+
+		if err != nil {
+			panic(err)
+		}
+
+		err = buf.WriteByte(0x00) // Null termination
+
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return len(data) + nulled
+}
+
+func RoWInt32StringNull(data []byte, target *string, buf *bytes.Buffer) int {
+	if target != nil {
+		if buf == nil && data != nil {
+			str, length := Int32StringNull(data)
+			*target = str
+			return length
+		} else if buf != nil && data == nil {
+			return WriteInt32StringNull(*target, buf)
+		}
+	}
+
+	panic("Invalid State!")
+}
+
+func RoWInt32(data []byte, target *int32, buf *bytes.Buffer) {
+	if target != nil {
+		if buf == nil && data != nil {
+			*target = Int32(data)
+		} else if buf != nil && data == nil {
+			err := binary.Write(buf, binary.LittleEndian, *target)
+
+			if err != nil {
+				panic(err)
+			}
+
+			return
+		}
+	}
+
+	panic("Invalid State!")
+}
+
+func RoWInt8(data []byte, target *int8, buf *bytes.Buffer) {
+	if target != nil {
+		if buf == nil && data != nil {
+			*target = int8(data[0])
+		} else if buf != nil && data == nil {
+			err := binary.Write(buf, binary.LittleEndian, *target)
+
+			if err != nil {
+				panic(err)
+			}
+
+			return
+		}
+	}
+
+	panic("Invalid State!")
+}
+
+func RoWInt64(data []byte, target *int64, buf *bytes.Buffer) {
+	if target != nil {
+		if buf == nil && data != nil {
+			*target = Int64(data)
+		} else if buf != nil && data == nil {
+			err := binary.Write(buf, binary.LittleEndian, *target)
+
+			if err != nil {
+				panic(err)
+			}
+
+			return
+		}
+	}
+
+	panic("Invalid State!")
+}
+
+func RoWFloat32(data []byte, target *float32, buf *bytes.Buffer) {
+	if target != nil {
+		if buf == nil && data != nil {
+			*target = Float32(data)
+		} else if buf != nil && data == nil {
+			err := binary.Write(buf, binary.LittleEndian, *target)
+
+			if err != nil {
+				panic(err)
+			}
+
+			return
+		}
+	}
+
+	panic("Invalid State!")
+}
+
+func RoWB(data *byte, target *byte, buf *bytes.Buffer) {
+	if target != nil {
+		if buf == nil && data != nil {
+			*target = *data
+		} else if buf != nil && data == nil {
+			err := buf.WriteByte(*target)
+
+			if err != nil {
+				panic(err)
+			}
+
+			return
+		}
+	}
+
+	panic("Invalid State!")
+}
+
+func RoWBytes(data []byte, target *[]byte, buf *bytes.Buffer) {
+	if target != nil {
+		if buf == nil && data != nil {
+			*target = data
+		} else if buf != nil && data == nil {
+			_, err := buf.Write(*target)
+
+			if err != nil {
+				panic(err)
+			}
+
+			return
+		}
+	}
+
+	panic("Invalid State!")
+}
+
+func RoWVec4(data []byte, target *Vector4, buf *bytes.Buffer) {
+	if target != nil {
+		if buf == nil && data != nil {
+			*target = Vec4(data)
+			return
+		} else if buf != nil && data == nil {
+			err := binary.Write(buf, binary.LittleEndian, target.X)
+
+			if err != nil {
+				panic(err)
+			}
+
+			err = binary.Write(buf, binary.LittleEndian, target.Y)
+
+			if err != nil {
+				panic(err)
+			}
+
+			err = binary.Write(buf, binary.LittleEndian, target.Z)
+
+			if err != nil {
+				panic(err)
+			}
+
+			err = binary.Write(buf, binary.LittleEndian, target.W)
+
+			if err != nil {
+				panic(err)
+			}
+
+			return
+		}
+	}
+
+	panic("Invalid State!")
+}
+
+func RoWVec3(data []byte, target *Vector3, buf *bytes.Buffer) {
+	if target != nil {
+		if buf == nil && data != nil {
+			*target = Vec3(data)
+			return
+		} else if buf != nil && data == nil {
+			err := binary.Write(buf, binary.LittleEndian, target.X)
+
+			if err != nil {
+				panic(err)
+			}
+
+			err = binary.Write(buf, binary.LittleEndian, target.Y)
+
+			if err != nil {
+				panic(err)
+			}
+
+			err = binary.Write(buf, binary.LittleEndian, target.Z)
+
+			if err != nil {
+				panic(err)
+			}
+
+			return
+		}
+	}
+
+	panic("Invalid State!")
+}
+
 func Float32(b []byte) float32 {
 	return math.Float32frombits(binary.LittleEndian.Uint32(b[:4]))
 }
@@ -95,4 +315,64 @@ func safeChar(char byte) string {
 	}
 
 	return string(char)
+}
+
+type RawHolder struct {
+	Data []byte
+}
+
+func (raw *RawHolder) From(from int) []byte {
+	if raw.Data == nil {
+		return nil
+	}
+
+	return raw.Data[from:]
+}
+
+func (raw *RawHolder) FromTo(from int, to int) []byte {
+	if raw.Data == nil {
+		return nil
+	}
+
+	return raw.Data[from:to]
+}
+
+func (raw *RawHolder) At(at int) *byte {
+	if raw.Data == nil {
+		return nil
+	}
+
+	return &raw.Data[at]
+}
+
+func (raw *RawHolder) FromNew(from int) RawHolder {
+	if raw.Data == nil {
+		return RawHolder{}
+	}
+
+	return RawHolder{
+		Data: raw.Data[from:],
+	}
+}
+
+func (raw *RawHolder) IsNil() bool {
+	return raw.Data == nil
+}
+
+func (raw *RawHolder) Length() int {
+	if raw.Data == nil {
+		return 0
+	}
+
+	return len(raw.Data)
+}
+
+func (raw *RawHolder) FromToNew(from int, to int) RawHolder {
+	if raw.Data == nil {
+		return RawHolder{}
+	}
+
+	return RawHolder{
+		Data: raw.Data[from:to],
+	}
 }
