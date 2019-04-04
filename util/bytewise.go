@@ -109,6 +109,7 @@ func RoWInt32(data []byte, target *int32, buf *bytes.Buffer) {
 	if target != nil {
 		if buf == nil && data != nil {
 			*target = Int32(data)
+			return
 		} else if buf != nil && data == nil {
 			err := binary.Write(buf, binary.LittleEndian, *target)
 
@@ -127,6 +128,7 @@ func RoWInt8(data []byte, target *int8, buf *bytes.Buffer) {
 	if target != nil {
 		if buf == nil && data != nil {
 			*target = int8(data[0])
+			return
 		} else if buf != nil && data == nil {
 			err := binary.Write(buf, binary.LittleEndian, *target)
 
@@ -145,6 +147,7 @@ func RoWInt64(data []byte, target *int64, buf *bytes.Buffer) {
 	if target != nil {
 		if buf == nil && data != nil {
 			*target = Int64(data)
+			return
 		} else if buf != nil && data == nil {
 			err := binary.Write(buf, binary.LittleEndian, *target)
 
@@ -163,6 +166,7 @@ func RoWFloat32(data []byte, target *float32, buf *bytes.Buffer) {
 	if target != nil {
 		if buf == nil && data != nil {
 			*target = Float32(data)
+			return
 		} else if buf != nil && data == nil {
 			err := binary.Write(buf, binary.LittleEndian, *target)
 
@@ -181,6 +185,7 @@ func RoWB(data *byte, target *byte, buf *bytes.Buffer) {
 	if target != nil {
 		if buf == nil && data != nil {
 			*target = *data
+			return
 		} else if buf != nil && data == nil {
 			err := buf.WriteByte(*target)
 
@@ -199,6 +204,7 @@ func RoWBytes(data []byte, target *[]byte, buf *bytes.Buffer) {
 	if target != nil {
 		if buf == nil && data != nil {
 			*target = data
+			return
 		} else if buf != nil && data == nil {
 			_, err := buf.Write(*target)
 

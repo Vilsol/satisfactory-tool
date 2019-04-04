@@ -298,6 +298,11 @@ func ReadToNone(data []byte, depth int) ([]Property, int) {
 		}
 	}
 
+	if depth == 0 {
+		// Skip 4 null bytes?
+		padding += 4
+	}
+
 	return values, padding
 }
 
@@ -381,7 +386,14 @@ func ReadVehicle(data []byte) (interface{}, int) {
 
 var specialProcessorClasses = map[string]func(data util.RawHolder, target interface{}, buf *bytes.Buffer) int{
 	"/Game/FactoryGame/-Shared/Blueprint/BP_CircuitSubsystem.BP_CircuitSubsystem_C": func(data util.RawHolder, target interface{}, buf *bytes.Buffer) int {
-		var targetStruct = (*target.(*interface{})).(BP_CircuitSubsystem_C)
+		var targetStruct BP_CircuitSubsystem_C
+
+		if buf == nil {
+			targetStruct = BP_CircuitSubsystem_C{}
+			*target.(*interface{}) = &targetStruct
+		} else {
+			targetStruct = (*target.(*interface{})).(BP_CircuitSubsystem_C)
+		}
 
 		padding := 0
 
@@ -414,7 +426,14 @@ var specialProcessorClasses = map[string]func(data util.RawHolder, target interf
 		return padding
 	},
 	"/Game/FactoryGame/-Shared/Blueprint/BP_GameMode.BP_GameMode_C": func(data util.RawHolder, target interface{}, buf *bytes.Buffer) int {
-		var targetStruct = (*target.(*interface{})).(BP_GameMode_C)
+		var targetStruct BP_GameMode_C
+
+		if buf == nil {
+			targetStruct = BP_GameMode_C{}
+			*target.(*interface{}) = &targetStruct
+		} else {
+			targetStruct = (*target.(*interface{})).(BP_GameMode_C)
+		}
 
 		padding := 0
 
@@ -443,7 +462,14 @@ var specialProcessorClasses = map[string]func(data util.RawHolder, target interf
 		return padding
 	},
 	"/Game/FactoryGame/-Shared/Blueprint/BP_GameState.BP_GameState_C": func(data util.RawHolder, target interface{}, buf *bytes.Buffer) int {
-		var targetStruct = (*target.(*interface{})).(BP_GameState_C)
+		var targetStruct BP_GameState_C
+
+		if buf == nil {
+			targetStruct = BP_GameState_C{}
+			*target.(*interface{}) = &targetStruct
+		} else {
+			targetStruct = (*target.(*interface{})).(BP_GameState_C)
+		}
 
 		padding := 0
 
@@ -472,7 +498,14 @@ var specialProcessorClasses = map[string]func(data util.RawHolder, target interf
 		return padding
 	},
 	"/Game/FactoryGame/-Shared/Blueprint/BP_RailroadSubsystem.BP_RailroadSubsystem_C": func(data util.RawHolder, target interface{}, buf *bytes.Buffer) int {
-		var targetStruct = (*target.(*interface{})).(BP_RailroadSubsystem_C)
+		var targetStruct BP_RailroadSubsystem_C
+
+		if buf == nil {
+			targetStruct = BP_RailroadSubsystem_C{}
+			*target.(*interface{}) = &targetStruct
+		} else {
+			targetStruct = (*target.(*interface{})).(BP_RailroadSubsystem_C)
+		}
 
 		padding := 0
 
@@ -517,7 +550,14 @@ var specialProcessorClasses = map[string]func(data util.RawHolder, target interf
 		return padding
 	},
 	"/Game/FactoryGame/Buildable/Factory/PowerLine/Build_PowerLine.Build_PowerLine_C": func(data util.RawHolder, target interface{}, buf *bytes.Buffer) int {
-		var targetStruct = (*target.(*interface{})).(Build_PowerLine_C)
+		var targetStruct Build_PowerLine_C
+
+		if buf == nil {
+			targetStruct = Build_PowerLine_C{}
+			*target.(*interface{}) = &targetStruct
+		} else {
+			targetStruct = (*target.(*interface{})).(Build_PowerLine_C)
+		}
 
 		padding := 0
 
@@ -538,7 +578,14 @@ var specialProcessorClasses = map[string]func(data util.RawHolder, target interf
 		return padding
 	},
 	"/Game/FactoryGame/Character/Player/BP_PlayerState.BP_PlayerState_C": func(data util.RawHolder, target interface{}, buf *bytes.Buffer) int {
-		var targetStruct = (*target.(*interface{})).(BP_PlayerState_C)
+		var targetStruct BP_PlayerState_C
+
+		if buf == nil {
+			targetStruct = BP_PlayerState_C{}
+			*target.(*interface{}) = &targetStruct
+		} else {
+			targetStruct = (*target.(*interface{})).(BP_PlayerState_C)
+		}
 
 		padding := 0
 
@@ -551,18 +598,25 @@ var specialProcessorClasses = map[string]func(data util.RawHolder, target interf
 		// TODO Merge reading/writing
 		if buf == nil {
 			// TODO Unknown
-			util.RoWBytes(data.From(padding+4), &targetStruct.Magic, buf)
-			padding += len(data.From(padding + 4))
+			util.RoWBytes(data.From(padding), &targetStruct.Magic, buf)
+			padding += len(data.From(padding))
 		} else {
-			tempArray := targetStruct.Magic[4:]
-			util.RoWBytes(data.From(padding+4), &tempArray, buf)
-			padding += len(data.From(padding + 4))
+			tempArray := targetStruct.Magic
+			util.RoWBytes(data.From(padding), &tempArray, buf)
+			padding += len(data.From(padding))
 		}
 
 		return padding
 	},
 	"/Game/FactoryGame/Buildable/Vehicle/Train/Wagon/BP_FreightWagon.BP_FreightWagon_C": func(data util.RawHolder, target interface{}, buf *bytes.Buffer) int {
-		var targetStruct = (*target.(*interface{})).(BP_FreightWagon_C)
+		var targetStruct BP_FreightWagon_C
+
+		if buf == nil {
+			targetStruct = BP_FreightWagon_C{}
+			*target.(*interface{}) = &targetStruct
+		} else {
+			targetStruct = (*target.(*interface{})).(BP_FreightWagon_C)
+		}
 
 		padding := 0
 
@@ -597,7 +651,14 @@ var specialProcessorClasses = map[string]func(data util.RawHolder, target interf
 		return padding
 	},
 	"/Game/FactoryGame/Buildable/Vehicle/Train/Locomotive/BP_Locomotive.BP_Locomotive_C": func(data util.RawHolder, target interface{}, buf *bytes.Buffer) int {
-		var targetStruct = (*target.(*interface{})).(BP_Locomotive_C)
+		var targetStruct BP_Locomotive_C
+
+		if buf == nil {
+			targetStruct = BP_Locomotive_C{}
+			*target.(*interface{}) = &targetStruct
+		} else {
+			targetStruct = (*target.(*interface{})).(BP_Locomotive_C)
+		}
 
 		padding := 0
 
@@ -642,7 +703,14 @@ var specialProcessorClasses = map[string]func(data util.RawHolder, target interf
 }
 
 func RoWBelt(data util.RawHolder, target interface{}, buf *bytes.Buffer) int {
-	var targetStruct = (*target.(*interface{})).(BP_Belt)
+	var targetStruct BP_Belt
+
+	if buf == nil {
+		targetStruct = BP_Belt{}
+		*target.(*interface{}) = &targetStruct
+	} else {
+		targetStruct = (*target.(*interface{})).(BP_Belt)
+	}
 
 	padding := 0
 
@@ -681,7 +749,14 @@ func RoWBelt(data util.RawHolder, target interface{}, buf *bytes.Buffer) int {
 }
 
 func RoWVehicle(data util.RawHolder, target interface{}, buf *bytes.Buffer) int {
-	var targetStruct = (*target.(*interface{})).(BP_Vehicle)
+	var targetStruct BP_Vehicle
+
+	if buf == nil {
+		targetStruct = BP_Vehicle{}
+		*target.(*interface{}) = &targetStruct
+	} else {
+		targetStruct = (*target.(*interface{})).(BP_Vehicle)
+	}
 
 	padding := 0
 

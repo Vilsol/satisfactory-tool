@@ -77,7 +77,7 @@ type EntityType struct {
 	Components       []ObjectProperty `json:"components"`
 	Fields           []Property       `json:"fields"`
 	ExtraObjects     interface{}      `json:"extra_objects,omitempty"`
-	Extra            interface{}      `json:"extra,omitempty"`
+	Extra            []byte           `json:"extra,omitempty"`
 }
 
 func ParseSaveComponentType(saveData []byte) (*SaveComponentType, int) {
@@ -328,6 +328,9 @@ func (entityType *EntityType) Process(data util.RawHolder, component *Parsable, 
 			}
 		}
 	}
+
+	util.RoWBytes(data.From(padding), &entityType.Extra, buf)
+	padding += len(data.From(padding))
 
 	return padding
 }

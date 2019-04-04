@@ -37,6 +37,24 @@ func (save *SatisfactorySave) SaveSave() []byte {
 	return all
 }
 
+func ParseSaveNew(path string) *SatisfactorySave {
+	logrus.Infof("Loading save file: %s\n", path)
+
+	saveData, err := ioutil.ReadFile(path)
+
+	if err != nil {
+		logrus.Panic(err)
+	}
+
+	save := SatisfactorySave{}
+
+	Process(util.RawHolder{
+		Data: saveData,
+	}, &save, nil)
+
+	return &save
+}
+
 func ParseSave(path string) *SatisfactorySave {
 	logrus.Infof("Loading save file: %s\n", path)
 
@@ -187,7 +205,7 @@ func Process(data util.RawHolder, save *SatisfactorySave, buf *bytes.Buffer) {
 	padding += 4
 
 	util.RoWInt64(data.From(padding), &save.SaveDate, buf)
-	padding += 4
+	padding += 8
 
 	util.RoWB(data.At(padding), &save.SessionVisibility, buf)
 	padding += 1
@@ -260,7 +278,7 @@ func Process(data util.RawHolder, save *SatisfactorySave, buf *bytes.Buffer) {
 
 		padding += int(save.WorldData[i].Length)
 
-		if i >= 365 {
+		if i >= 377 {
 			// fmt.Printf("%#v\n", save.WorldData[i].Data)
 			// return
 		}
@@ -269,6 +287,10 @@ func Process(data util.RawHolder, save *SatisfactorySave, buf *bytes.Buffer) {
 	var extraObjectCount = int32(len(save.ExtraObjects))
 	util.RoWInt32(data.From(padding), &extraObjectCount, buf)
 	padding += 4
+
+	if buf == nil {
+		save.ExtraObjects = make([]ObjectProperty, extraObjectCount)
+	}
 
 	for i := 0; i < int(extraObjectCount); i++ {
 		padding += util.RoWInt32StringNull(data.From(padding), &save.ExtraObjects[i].World, buf)
