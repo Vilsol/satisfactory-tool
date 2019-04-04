@@ -10,7 +10,7 @@ import (
 )
 
 func TestSav2Json2Sav(t *testing.T) {
-	satisfactorySave := save.ParseSaveNew("test.sav")
+	satisfactorySave := save.ParseSave("test.sav")
 
 	logrus.Infof("Generating JSON output\n")
 

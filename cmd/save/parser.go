@@ -76,7 +76,7 @@ func main() {
 		}
 	} else if flag.NArg() == 3 {
 		if flag.Arg(0) == "sav2json" {
-			satisfactorySave := save.ParseSaveNew(flag.Arg(1))
+			satisfactorySave := save.ParseSave(flag.Arg(1))
 
 			logrus.Infof("Generating JSON output\n")
 

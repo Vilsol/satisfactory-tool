@@ -51,7 +51,6 @@ func (wrapper *ParsableWrapper) UnmarshalJSON(b []byte) error {
 }
 
 type Parsable interface {
-	Parse(length int, data []byte)
 	Process(data util.RawHolder, component *Parsable, buf *bytes.Buffer) int
 }
 
@@ -78,131 +77,6 @@ type EntityType struct {
 	Fields           []Property       `json:"fields"`
 	ExtraObjects     interface{}      `json:"extra_objects,omitempty"`
 	Extra            []byte           `json:"extra,omitempty"`
-}
-
-func ParseSaveComponentType(saveData []byte) (*SaveComponentType, int) {
-	padding := 0
-
-	classType, strLen := util.Int32StringNull(saveData[padding:])
-	padding += 4 + strLen
-
-	entityType, strLen := util.Int32StringNull(saveData[padding:])
-	padding += 4 + strLen
-
-	instanceType, strLen := util.Int32StringNull(saveData[padding:])
-	padding += 4 + strLen
-
-	parentEntityType, strLen := util.Int32StringNull(saveData[padding:])
-	padding += 4 + strLen
-
-	return &SaveComponentType{
-		ClassType:        classType,
-		EntityType:       entityType,
-		InstanceType:     instanceType,
-		ParentEntityType: parentEntityType,
-	}, padding
-}
-
-func ParseEntityType(saveData []byte) (*EntityType, int) {
-	padding := 0
-
-	classType, strLen := util.Int32StringNull(saveData[padding:])
-	padding += 4 + strLen
-
-	entityType, strLen := util.Int32StringNull(saveData[padding:])
-	padding += 4 + strLen
-
-	instanceType, strLen := util.Int32StringNull(saveData[padding:])
-	padding += 4 + strLen
-
-	magicInt1 := util.Int32(saveData[padding:])
-	padding += 4
-
-	rotation := util.Vec4(saveData[padding:])
-	padding += 16
-
-	position := util.Vec3(saveData[padding:])
-	padding += 12
-
-	scale := util.Vec3(saveData[padding:])
-	padding += 12
-
-	magicInt2 := util.Int32(saveData[padding:])
-	padding += 4
-
-	return &EntityType{
-		ClassType:    classType,
-		EntityType:   entityType,
-		InstanceType: instanceType,
-		MagicInt1:    magicInt1,
-		MagicInt2:    magicInt2,
-		Rotation:     rotation,
-		Position:     position,
-		Scale:        scale,
-	}, padding
-}
-
-func (saveComponentType *SaveComponentType) Parse(length int, data []byte) {
-	padding := 0
-
-	saveComponentType.Fields, padding = ReadToNone(data, 0)
-
-	if length-padding > 4 {
-		logrus.Errorf("%v has >4 bytes [%d] left and is not handled as a special case!\n", saveComponentType.ClassType, length-padding)
-	}
-}
-
-func (entityType *EntityType) Parse(length int, data []byte) {
-	padding := 0
-	var strLen int
-
-	entityType.ParentObjectRoot, strLen = util.Int32StringNull(data[padding:])
-	padding += 4 + strLen
-
-	entityType.ParentObjectName, strLen = util.Int32StringNull(data[padding:])
-	padding += 4 + strLen
-
-	componentCount := int(util.Int32(data[padding:]))
-	padding += 4
-
-	entityType.Components = make([]ObjectProperty, componentCount)
-
-	for i := 0; i < componentCount; i++ {
-		root, strLength := util.Int32StringNull(data[padding:])
-		padding += 4 + strLength
-
-		name, strLength := util.Int32StringNull(data[padding:])
-		padding += 4 + strLength
-
-		entityType.Components[i] = ObjectProperty{
-			World: root,
-			Class: name,
-		}
-	}
-
-	var padded int
-	entityType.Fields, padded = ReadToNone(data[padding:], 0)
-	padding += padded
-
-	if length-padding > 4 {
-		if specialFunc, ok := specialClasses[entityType.ClassType]; ok {
-			extraData, padded := specialFunc(data[padding:length])
-			padding += padded
-
-			if extraData == nil {
-				logrus.Errorf("%v Did not process any data [%d]\n", entityType.ClassType, length-padding)
-			} else if length-padding > 4 {
-				logrus.Errorf("%v Did not read to end [%d]\n", entityType.ClassType, length-padding)
-			} else {
-				entityType.ExtraObjects = extraData
-				return
-			}
-		} else {
-			logrus.Errorf("%v has >4 bytes [%d] left and is not handled as a special case!\n", entityType.ClassType, length-padding)
-		}
-	}
-
-	entityType.Extra = data[padding:]
 }
 
 func ProcessSaveComponentType(data util.RawHolder, component *SaveComponentType, buf *bytes.Buffer) int {
@@ -296,36 +170,18 @@ func (entityType *EntityType) Process(data util.RawHolder, component *Parsable, 
 
 	padding += RoWToNone(data.FromNew(padding), &entityType.Fields, buf, 0)
 
-	// TODO Merge reading/writing
-	if buf == nil {
-		if data.Length()-padding > 4 {
-			if specialFunc, ok := specialProcessorClasses[entityType.ClassType]; ok {
-				padded := specialFunc(data.FromNew(padding), &entityType.ExtraObjects, buf)
-				padding += padded
+	if (buf == nil && data.Length()-padding > 4) || (buf != nil && entityType.ExtraObjects != nil) {
+		if specialFunc, ok := specialProcessorClasses[entityType.ClassType]; ok {
+			padded := specialFunc(data.FromNew(padding), &entityType.ExtraObjects, buf)
+			padding += padded
 
-				if entityType.ExtraObjects == nil {
-					logrus.Errorf("%v Did not process any data [%d]\n", entityType.ClassType, data.Length()-padding)
-				} else if data.Length()-padding > 4 {
-					logrus.Errorf("%v Did not read to end [%d]\n", entityType.ClassType, data.Length()-padding)
-				}
-			} else {
-				logrus.Errorf("%v has >4 bytes [%d] left and is not handled as a special case!\n", entityType.ClassType, data.Length()-padding)
+			if entityType.ExtraObjects == nil {
+				logrus.Errorf("%v Did not process any data [%d]\n", entityType.ClassType, data.Length()-padding)
+			} else if data.Length()-padding > 4 {
+				logrus.Errorf("%v Did not read to end [%d]\n", entityType.ClassType, data.Length()-padding)
 			}
-		}
-	} else {
-		if entityType.ExtraObjects != nil {
-			if specialFunc, ok := specialProcessorClasses[entityType.ClassType]; ok {
-				padded := specialFunc(data.FromNew(padding), &entityType.ExtraObjects, buf)
-				padding += padded
-
-				if entityType.ExtraObjects == nil {
-					logrus.Errorf("%v Did not process any data [%d]\n", entityType.ClassType, data.Length()-padding)
-				} else if data.Length()-padding > 4 {
-					logrus.Errorf("%v Did not read to end [%d]\n", entityType.ClassType, data.Length()-padding)
-				}
-			} else {
-				logrus.Errorf("%v has >4 bytes [%d] left and is not handled as a special case!\n", entityType.ClassType, data.Length()-padding)
-			}
+		} else {
+			logrus.Errorf("%v has >4 bytes [%d] left and is not handled as a special case!\n", entityType.ClassType, data.Length()-padding)
 		}
 	}
 
@@ -338,9 +194,29 @@ func (entityType *EntityType) Process(data util.RawHolder, component *Parsable, 
 func RoWToNone(data util.RawHolder, target *[]Property, buf *bytes.Buffer, depth int) int {
 	if target != nil {
 		if buf == nil && !data.IsNil() {
-			result, padded := ReadToNone(data.From(0), depth)
-			*target = result
-			return padded
+			padding := 0
+			values := make([]Property, 0)
+
+			name := ""
+			for name != "None" && data.Length()-padding > 4 {
+				var tempValue Property
+				padded := ProcessProperty(data.FromNew(padding), &tempValue, buf, depth)
+				name = tempValue.Name
+				padding += padded
+
+				if name != "None" {
+					values = append(values, tempValue)
+				}
+			}
+
+			if depth == 0 {
+				// Skip 4 null bytes?
+				padding += 4
+			}
+
+			*target = values
+
+			return padding
 		} else if buf != nil && data.IsNil() {
 			padding := 0
 

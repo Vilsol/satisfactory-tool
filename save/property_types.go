@@ -32,7 +32,7 @@ type ArrayProperty struct {
 
 type StructProperty struct {
 	Type  string         `json:"type"`
-	Magic *[]byte        `json:"magic,omitempty"`
+	Magic []byte         `json:"magic,omitempty"`
 	Value ReadOrWritable `json:"value"`
 }
 
@@ -64,9 +64,9 @@ type EnumProperty struct {
 }
 
 type ByteProperty struct {
-	EnumType string  `json:"enum_type,omitempty"`
-	Byte     byte    `json:"byte"`
-	EnumName *string `json:"enum_name,omitempty"`
+	EnumType string `json:"enum_type,omitempty"`
+	Byte     byte   `json:"byte"`
+	EnumName string `json:"enum_name,omitempty"`
 }
 
 func (wrapper *Property) UnmarshalJSON(b []byte) error {
@@ -322,17 +322,14 @@ type BP_CircuitSubsystem_C_Circuit struct {
 }
 
 type BP_CircuitSubsystem_C struct {
-	Magic    []byte                          `json:"magic"`
 	Circuits []BP_CircuitSubsystem_C_Circuit `json:"circuits"`
 }
 
 type BP_GameMode_C struct {
-	Magic   []byte           `json:"magic"`
 	Objects []ObjectProperty `json:"objects"`
 }
 
 type BP_GameState_C struct {
-	Magic   []byte           `json:"magic"`
 	Objects []ObjectProperty `json:"objects"`
 }
 
@@ -347,21 +344,18 @@ type BP_RailroadSubsystem_C_Train struct {
 }
 
 type BP_RailroadSubsystem_C struct {
-	Magic  []byte                         `json:"magic"`
 	Trains []BP_RailroadSubsystem_C_Train `json:"trains"`
 }
 
 type Build_PowerLine_C struct {
-	Values       []Property `json:"values"`
-	SourceWorld  string     `json:"source_world"`
-	SourceEntity string     `json:"source_entity"`
-	TargetWorld  string     `json:"target_world"`
-	TargetEntity string     `json:"target_entity"`
+	SourceWorld  string `json:"source_world"`
+	SourceEntity string `json:"source_entity"`
+	TargetWorld  string `json:"target_world"`
+	TargetEntity string `json:"target_entity"`
 }
 
 type BP_PlayerState_C struct {
-	Magic  []byte       `json:"magic"`
-	Values [][]Property `json:"values"`
+	Magic []byte `json:"magic"`
 }
 
 type BP_FreightWagon_C struct {
@@ -390,7 +384,6 @@ type BP_Vehicle_Object struct {
 }
 
 type BP_Vehicle struct {
-	Magic   []byte              `json:"magic"`
 	Objects []BP_Vehicle_Object `json:"objects"`
 }
 
@@ -402,6 +395,5 @@ type BP_Belt_Item struct {
 
 type BP_Belt struct {
 	Values [][]Property   `json:"values"`
-	Magic  []byte         `json:"magic"`
 	Items  []BP_Belt_Item `json:"items"`
 }

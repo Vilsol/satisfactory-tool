@@ -5,7 +5,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"satisfactory-tool/util"
-	"strconv"
 )
 
 type SatisfactorySave struct {
@@ -37,7 +36,7 @@ func (save *SatisfactorySave) SaveSave() []byte {
 	return all
 }
 
-func ParseSaveNew(path string) *SatisfactorySave {
+func ParseSave(path string) *SatisfactorySave {
 	logrus.Infof("Loading save file: %s\n", path)
 
 	saveData, err := ioutil.ReadFile(path)
@@ -53,131 +52,6 @@ func ParseSaveNew(path string) *SatisfactorySave {
 	}, &save, nil)
 
 	return &save
-}
-
-func ParseSave(path string) *SatisfactorySave {
-	logrus.Infof("Loading save file: %s\n", path)
-
-	saveData, err := ioutil.ReadFile(path)
-
-	if err != nil {
-		logrus.Panic(err)
-	}
-
-	logrus.Infof("Parsing save file\n")
-
-	padding := 0
-
-	saveHeaderVersion := util.Int32(saveData[padding:])
-	padding += 4
-
-	saveVersion := util.Int32(saveData[padding:])
-	padding += 4
-
-	buildVersion := util.Int32(saveData[padding:])
-	padding += 4
-
-	levelType, strLength := util.Int32StringNull(saveData[padding:])
-	padding += 4 + strLength
-
-	levelOptions, strLength := util.Int32StringNull(saveData[padding:])
-	padding += 4 + strLength
-
-	sessionName, strLength := util.Int32StringNull(saveData[padding:])
-	padding += 4 + strLength
-
-	playTimeSeconds := util.Int32(saveData[padding:])
-	padding += 4
-
-	saveDate := util.Int64(saveData[padding:])
-	padding += 8
-
-	sessionVisibility := saveData[padding]
-	padding += 1
-
-	worldDataLength := int(util.Int32(saveData[padding:]))
-	padding += 4
-
-	worldData := make([]ParsableWrapper, worldDataLength)
-
-	for i := 0; i < worldDataLength; i++ {
-		dataType := int(util.Int32(saveData[padding:]))
-		padding += 4
-
-		switch dataType {
-		case SaveComponentTypeID:
-			saveComponentType, padded := ParseSaveComponentType(saveData[padding:])
-			padding += padded
-			worldData[i] = ParsableWrapper{
-				Type: "save",
-				Data: saveComponentType,
-			}
-			break
-		case EntityTypeID:
-			entityType, padded := ParseEntityType(saveData[padding:])
-			padding += padded
-			worldData[i] = ParsableWrapper{
-				Type: "entity",
-				Data: entityType,
-			}
-			break
-		default:
-			logrus.Panic("Unknown type: " + strconv.Itoa(dataType))
-		}
-	}
-
-	extraWorldDataLength := int(util.Int32(saveData[padding:]))
-	padding += 4
-
-	for i := 0; i < extraWorldDataLength; i++ {
-		length := util.Int32(saveData[padding:])
-		padding += 4
-		logrus.Infof("Obj: %d Pos: %#x Len: %d", i, padding, length)
-
-		worldData[i].Length = length
-		worldData[i].Data.Parse(int(length), saveData[padding:padding+int(length)])
-		padding += int(length)
-	}
-
-	extraObjectCount := int(util.Int32(saveData[padding:]))
-	padding += 4
-
-	extraObjects := make([]ObjectProperty, extraObjectCount)
-
-	for i := 0; i < extraObjectCount; i++ {
-		world, strLength := util.Int32StringNull(saveData[padding:])
-		padding += 4 + strLength
-
-		class, strLength := util.Int32StringNull(saveData[padding:])
-		padding += 4 + strLength
-
-		extraObjects[i] = ObjectProperty{
-			World: world,
-			Class: class,
-		}
-	}
-
-	var extraData []byte
-
-	if len(saveData)-padding > 0 {
-		logrus.Errorf("Extra at the end of the file: %5d\n%s", len(saveData)-padding, util.HexDump(saveData[padding:]))
-		extraData = saveData[padding:]
-	}
-
-	return &SatisfactorySave{
-		SaveHeaderVersion: saveHeaderVersion,
-		SaveVersion:       saveVersion,
-		BuildVersion:      buildVersion,
-		LevelType:         levelType,
-		LevelOptions:      levelOptions,
-		SessionName:       sessionName,
-		PlayTimeSeconds:   playTimeSeconds,
-		SaveDate:          saveDate,
-		SessionVisibility: sessionVisibility,
-		WorldData:         worldData,
-		ExtraObjects:      extraObjects,
-		Extra:             extraData,
-	}
 }
 
 func Process(data util.RawHolder, save *SatisfactorySave, buf *bytes.Buffer) {
@@ -277,11 +151,6 @@ func Process(data util.RawHolder, save *SatisfactorySave, buf *bytes.Buffer) {
 		save.WorldData[i].Data.Process(data.FromToNew(padding, padding+int(save.WorldData[i].Length)), &save.WorldData[i].Data, buf)
 
 		padding += int(save.WorldData[i].Length)
-
-		if i >= 377 {
-			// fmt.Printf("%#v\n", save.WorldData[i].Data)
-			// return
-		}
 	}
 
 	var extraObjectCount = int32(len(save.ExtraObjects))
