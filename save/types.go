@@ -2,7 +2,7 @@ package save
 
 import (
 	"bytes"
-	"encoding/json"
+	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	"satisfactory-tool/util"
 )
@@ -14,15 +14,15 @@ type ParsableWrapper struct {
 }
 
 func (wrapper *ParsableWrapper) UnmarshalJSON(b []byte) error {
-	var temp map[string]json.RawMessage
-	err := json.Unmarshal(b, &temp)
+	var temp map[string]jsoniter.RawMessage
+	err := jsoniter.Unmarshal(b, &temp)
 
 	if err != nil {
 		return err
 	}
 
-	err = json.Unmarshal(temp["type"], &wrapper.Type)
-	err = json.Unmarshal(temp["length"], &wrapper.Length)
+	err = jsoniter.Unmarshal(temp["type"], &wrapper.Type)
+	err = jsoniter.Unmarshal(temp["length"], &wrapper.Length)
 
 	if err != nil {
 		return err
@@ -31,12 +31,12 @@ func (wrapper *ParsableWrapper) UnmarshalJSON(b []byte) error {
 	switch wrapper.Type {
 	case "save":
 		data := SaveComponentType{}
-		err = json.Unmarshal(temp["data"], &data)
+		err = jsoniter.Unmarshal(temp["data"], &data)
 		wrapper.Data = &data
 		break
 	case "entity":
 		data := EntityType{}
-		err = json.Unmarshal(temp["data"], &data)
+		err = jsoniter.Unmarshal(temp["data"], &data)
 		wrapper.Data = &data
 		break
 	default:
@@ -361,77 +361,77 @@ func RoWToNone(data util.RawHolder, target *[]Property, buf *bytes.Buffer, depth
 }
 
 func (wrapper *EntityType) UnmarshalJSON(b []byte) error {
-	var temp map[string]json.RawMessage
-	err := json.Unmarshal(b, &temp)
+	var temp map[string]jsoniter.RawMessage
+	err := jsoniter.Unmarshal(b, &temp)
 
 	if err != nil {
 		return err
 	}
 
-	_ = json.Unmarshal(temp["class_type"], &wrapper.ClassType)
-	_ = json.Unmarshal(temp["entity_type"], &wrapper.EntityType)
-	_ = json.Unmarshal(temp["instance_type"], &wrapper.InstanceType)
-	_ = json.Unmarshal(temp["magic_int_1"], &wrapper.MagicInt1)
-	_ = json.Unmarshal(temp["magic_int_2"], &wrapper.MagicInt2)
-	_ = json.Unmarshal(temp["rotation"], &wrapper.Rotation)
-	_ = json.Unmarshal(temp["position"], &wrapper.Position)
-	_ = json.Unmarshal(temp["scale"], &wrapper.Scale)
-	_ = json.Unmarshal(temp["parent_object_root"], &wrapper.ParentObjectRoot)
-	_ = json.Unmarshal(temp["parent_object_name"], &wrapper.ParentObjectName)
-	_ = json.Unmarshal(temp["components"], &wrapper.Components)
-	_ = json.Unmarshal(temp["fields"], &wrapper.Fields)
+	_ = jsoniter.Unmarshal(temp["class_type"], &wrapper.ClassType)
+	_ = jsoniter.Unmarshal(temp["entity_type"], &wrapper.EntityType)
+	_ = jsoniter.Unmarshal(temp["instance_type"], &wrapper.InstanceType)
+	_ = jsoniter.Unmarshal(temp["magic_int_1"], &wrapper.MagicInt1)
+	_ = jsoniter.Unmarshal(temp["magic_int_2"], &wrapper.MagicInt2)
+	_ = jsoniter.Unmarshal(temp["rotation"], &wrapper.Rotation)
+	_ = jsoniter.Unmarshal(temp["position"], &wrapper.Position)
+	_ = jsoniter.Unmarshal(temp["scale"], &wrapper.Scale)
+	_ = jsoniter.Unmarshal(temp["parent_object_root"], &wrapper.ParentObjectRoot)
+	_ = jsoniter.Unmarshal(temp["parent_object_name"], &wrapper.ParentObjectName)
+	_ = jsoniter.Unmarshal(temp["components"], &wrapper.Components)
+	_ = jsoniter.Unmarshal(temp["fields"], &wrapper.Fields)
 
 	if _, ok := temp["extra"]; ok {
-		_ = json.Unmarshal(temp["extra"], &wrapper.Extra)
+		_ = jsoniter.Unmarshal(temp["extra"], &wrapper.Extra)
 	}
 
 	if _, ok := temp["extra_objects"]; ok {
 		switch wrapper.ClassType {
 		case "/Game/FactoryGame/-Shared/Blueprint/BP_CircuitSubsystem.BP_CircuitSubsystem_C":
 			data := BP_CircuitSubsystem_C{}
-			err = json.Unmarshal(temp["extra_objects"], &data)
+			err = jsoniter.Unmarshal(temp["extra_objects"], &data)
 			wrapper.ExtraObjects = data
 			break
 		case "/Game/FactoryGame/-Shared/Blueprint/BP_GameMode.BP_GameMode_C":
 			data := BP_GameMode_C{}
-			err = json.Unmarshal(temp["extra_objects"], &data)
+			err = jsoniter.Unmarshal(temp["extra_objects"], &data)
 			wrapper.ExtraObjects = data
 			break
 		case "/Game/FactoryGame/-Shared/Blueprint/BP_GameState.BP_GameState_C":
 			data := BP_GameState_C{}
-			err = json.Unmarshal(temp["extra_objects"], &data)
+			err = jsoniter.Unmarshal(temp["extra_objects"], &data)
 			wrapper.ExtraObjects = data
 			break
 		case "/Game/FactoryGame/-Shared/Blueprint/BP_RailroadSubsystem.BP_RailroadSubsystem_C":
 			data := BP_RailroadSubsystem_C{}
-			err = json.Unmarshal(temp["extra_objects"], &data)
+			err = jsoniter.Unmarshal(temp["extra_objects"], &data)
 			wrapper.ExtraObjects = data
 			break
 		case "/Game/FactoryGame/Buildable/Factory/PowerLine/Build_PowerLine.Build_PowerLine_C":
 			data := Build_PowerLine_C{}
-			err = json.Unmarshal(temp["extra_objects"], &data)
+			err = jsoniter.Unmarshal(temp["extra_objects"], &data)
 			wrapper.ExtraObjects = data
 			break
 		case "/Game/FactoryGame/Character/Player/BP_PlayerState.BP_PlayerState_C":
 			data := BP_PlayerState_C{}
-			err = json.Unmarshal(temp["extra_objects"], &data)
+			err = jsoniter.Unmarshal(temp["extra_objects"], &data)
 			wrapper.ExtraObjects = data
 			break
 		case "/Game/FactoryGame/Buildable/Vehicle/Train/Wagon/BP_FreightWagon.BP_FreightWagon_C":
 			data := BP_FreightWagon_C{}
-			err = json.Unmarshal(temp["extra_objects"], &data)
+			err = jsoniter.Unmarshal(temp["extra_objects"], &data)
 			wrapper.ExtraObjects = data
 			break
 		case "/Game/FactoryGame/Buildable/Vehicle/Train/Locomotive/BP_Locomotive.BP_Locomotive_C":
 			data := BP_Locomotive_C{}
-			err = json.Unmarshal(temp["extra_objects"], &data)
+			err = jsoniter.Unmarshal(temp["extra_objects"], &data)
 			wrapper.ExtraObjects = data
 			break
 		case "/Game/FactoryGame/Buildable/Vehicle/Tractor/BP_Tractor.BP_Tractor_C":
 			fallthrough
 		case "/Game/FactoryGame/Buildable/Vehicle/Truck/BP_Truck.BP_Truck_C":
 			data := BP_Vehicle{}
-			err = json.Unmarshal(temp["extra_objects"], &data)
+			err = jsoniter.Unmarshal(temp["extra_objects"], &data)
 			wrapper.ExtraObjects = data
 			break
 		case "/Game/FactoryGame/Buildable/Factory/ConveyorBeltMk1/Build_ConveyorBeltMk1.Build_ConveyorBeltMk1_C":
@@ -446,7 +446,7 @@ func (wrapper *EntityType) UnmarshalJSON(b []byte) error {
 			fallthrough
 		case "/Game/FactoryGame/Buildable/Factory/ConveyorBeltMk6/Build_ConveyorBeltMk6.Build_ConveyorBeltMk6_C":
 			data := BP_Belt{}
-			err = json.Unmarshal(temp["extra_objects"], &data)
+			err = jsoniter.Unmarshal(temp["extra_objects"], &data)
 			wrapper.ExtraObjects = data
 			break
 		case "/Game/FactoryGame/-Shared/Blueprint/BP_StorySubsystem.BP_StorySubsystem_C":
@@ -473,7 +473,7 @@ func (wrapper *EntityType) UnmarshalJSON(b []byte) error {
 			fallthrough
 		case "/Script/FactoryGame.FGFoliageRemoval":
 			data := BP_Generic{}
-			err = json.Unmarshal(temp["extra_objects"], &data)
+			err = jsoniter.Unmarshal(temp["extra_objects"], &data)
 			wrapper.ExtraObjects = data
 			break
 		}

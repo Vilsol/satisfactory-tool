@@ -1,9 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
@@ -28,27 +28,35 @@ func main() {
 		if flag.Arg(0) == "test" {
 			satisfactorySave := save.ParseSave(flag.Arg(1))
 
+			logrus.Infof("Generating JSON output\n")
+
 			var marshaled []byte
 			var err error
 
 			if *indent {
-				marshaled, err = json.MarshalIndent(satisfactorySave, "", "  ")
+				marshaled, err = jsoniter.MarshalIndent(satisfactorySave, "", "  ")
 			} else {
-				marshaled, err = json.Marshal(satisfactorySave)
+				marshaled, err = jsoniter.Marshal(satisfactorySave)
 			}
 
 			if err != nil {
 				logrus.Panic(err)
 			}
+
+			logrus.Infof("Parsing JSON output\n")
 
 			target := save.SatisfactorySave{}
-			err = json.Unmarshal(marshaled, &target)
+			err = jsoniter.Unmarshal(marshaled, &target)
 
 			if err != nil {
 				logrus.Panic(err)
 			}
 
+			logrus.Infof("Generating SAV file\n")
+
 			result := target.SaveSave()
+
+			logrus.Infof("Comparing SAV file to original\n")
 
 			bytes, _ := ioutil.ReadFile(flag.Arg(1))
 
@@ -70,18 +78,22 @@ func main() {
 		if flag.Arg(0) == "sav2json" {
 			satisfactorySave := save.ParseSave(flag.Arg(1))
 
+			logrus.Infof("Generating JSON output\n")
+
 			var marshaled []byte
 			var err error
 
 			if *indent {
-				marshaled, err = json.MarshalIndent(satisfactorySave, "", "  ")
+				marshaled, err = jsoniter.MarshalIndent(satisfactorySave, "", "  ")
 			} else {
-				marshaled, err = json.Marshal(satisfactorySave)
+				marshaled, err = jsoniter.Marshal(satisfactorySave)
 			}
 
 			if err != nil {
 				logrus.Panic(err)
 			}
+
+			logrus.Infof("Saving JSON output to %s\n", flag.Arg(2))
 
 			err = ioutil.WriteFile(flag.Arg(2), marshaled, 0666)
 
@@ -91,20 +103,28 @@ func main() {
 
 			return
 		} else if flag.Arg(0) == "json2sav" {
+			logrus.Infof("Loading JSON file: %s\n", flag.Arg(1))
+
 			file, err := ioutil.ReadFile(flag.Arg(1))
 
 			if err != nil {
 				logrus.Panic(err)
 			}
 
+			logrus.Infof("Parsing JSON file\n")
+
 			target := save.SatisfactorySave{}
-			err = json.Unmarshal(file, &target)
+			err = jsoniter.Unmarshal(file, &target)
 
 			if err != nil {
 				logrus.Panic(err)
 			}
 
+			logrus.Infof("Generating SAV file\n")
+
 			result := target.SaveSave()
+
+			logrus.Infof("Saving SAV file: %s\n", flag.Arg(2))
 
 			err = ioutil.WriteFile(flag.Arg(2), result, 0666)
 
@@ -120,12 +140,13 @@ func main() {
 }
 
 func PrintUsage() {
-	fmt.Println("Usage: satisfactory-tool [action] [input] [output]")
+	fmt.Println("Usage: satisfactory-tool [flags] [action] [input] [output]")
 	fmt.Println()
 	fmt.Println("Actions:")
 	fmt.Println("  sav2json: Convert .sav file to .json")
 	fmt.Println("  json2sav: Convert .json file to .sav")
 	fmt.Println("  test:     Test converting .sav to .json and back to .sav and compare")
+	fmt.Println()
 	fmt.Println("Flags:")
 	flag.PrintDefaults()
 }

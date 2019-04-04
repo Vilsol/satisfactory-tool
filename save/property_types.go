@@ -1,8 +1,8 @@
 package save
 
 import (
-	"encoding/json"
 	"errors"
+	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	"satisfactory-tool/util"
 )
@@ -70,17 +70,17 @@ type ByteProperty struct {
 }
 
 func (wrapper *Property) UnmarshalJSON(b []byte) error {
-	var temp map[string]json.RawMessage
-	err := json.Unmarshal(b, &temp)
+	var temp map[string]jsoniter.RawMessage
+	err := jsoniter.Unmarshal(b, &temp)
 
 	if err != nil {
 		return err
 	}
 
-	_ = json.Unmarshal(temp["name"], &wrapper.Name)
-	_ = json.Unmarshal(temp["type"], &wrapper.Type)
-	_ = json.Unmarshal(temp["index"], &wrapper.Index)
-	_ = json.Unmarshal(temp["size"], &wrapper.Size)
+	_ = jsoniter.Unmarshal(temp["name"], &wrapper.Name)
+	_ = jsoniter.Unmarshal(temp["type"], &wrapper.Type)
+	_ = jsoniter.Unmarshal(temp["index"], &wrapper.Index)
+	_ = jsoniter.Unmarshal(temp["size"], &wrapper.Size)
 
 	wrapper.Value, err = UnwrapProperty(wrapper.Type, temp["value"])
 
@@ -92,23 +92,23 @@ func (wrapper *Property) UnmarshalJSON(b []byte) error {
 }
 
 func (wrapper *ArrayProperty) UnmarshalJSON(b []byte) error {
-	var temp map[string]json.RawMessage
-	err := json.Unmarshal(b, &temp)
+	var temp map[string]jsoniter.RawMessage
+	err := jsoniter.Unmarshal(b, &temp)
 
 	if err != nil {
 		return err
 	}
 
-	_ = json.Unmarshal(temp["type"], &wrapper.Type)
-	_ = json.Unmarshal(temp["struct_name"], &wrapper.StructName)
-	_ = json.Unmarshal(temp["struct_type"], &wrapper.StructType)
-	_ = json.Unmarshal(temp["struct_size"], &wrapper.StructSize)
-	_ = json.Unmarshal(temp["magic_1"], &wrapper.Magic1)
-	_ = json.Unmarshal(temp["struct_class_type"], &wrapper.StructClassType)
-	_ = json.Unmarshal(temp["magic_2"], &wrapper.Magic2)
+	_ = jsoniter.Unmarshal(temp["type"], &wrapper.Type)
+	_ = jsoniter.Unmarshal(temp["struct_name"], &wrapper.StructName)
+	_ = jsoniter.Unmarshal(temp["struct_type"], &wrapper.StructType)
+	_ = jsoniter.Unmarshal(temp["struct_size"], &wrapper.StructSize)
+	_ = jsoniter.Unmarshal(temp["magic_1"], &wrapper.Magic1)
+	_ = jsoniter.Unmarshal(temp["struct_class_type"], &wrapper.StructClassType)
+	_ = jsoniter.Unmarshal(temp["magic_2"], &wrapper.Magic2)
 
-	var tempArray []json.RawMessage
-	_ = json.Unmarshal(temp["values"], &tempArray)
+	var tempArray []jsoniter.RawMessage
+	_ = jsoniter.Unmarshal(temp["values"], &tempArray)
 
 	wrapper.Values = make([]ReadOrWritable, len(tempArray))
 
@@ -127,53 +127,53 @@ func UnwrapProperty(propertyType string, data []byte) (interface{}, error) {
 	switch propertyType {
 	case "ArrayProperty":
 		prop := ArrayProperty{}
-		err := json.Unmarshal(data, &prop)
+		err := jsoniter.Unmarshal(data, &prop)
 		return &prop, err
 	case "StructProperty":
 		prop := StructProperty{}
-		err := json.Unmarshal(data, &prop)
+		err := jsoniter.Unmarshal(data, &prop)
 		return &prop, err
 	case "MapProperty":
 		prop := MapProperty{}
-		err := json.Unmarshal(data, &prop)
+		err := jsoniter.Unmarshal(data, &prop)
 		return &prop, err
 	case "ObjectProperty":
 		prop := ObjectProperty{}
-		err := json.Unmarshal(data, &prop)
+		err := jsoniter.Unmarshal(data, &prop)
 		return &prop, err
 	case "TextProperty":
 		prop := TextProperty{}
-		err := json.Unmarshal(data, &prop)
+		err := jsoniter.Unmarshal(data, &prop)
 		return &prop, err
 	case "EnumProperty":
 		prop := EnumProperty{}
-		err := json.Unmarshal(data, &prop)
+		err := jsoniter.Unmarshal(data, &prop)
 		return &prop, err
 	case "ByteProperty":
 		prop := ByteProperty{}
-		err := json.Unmarshal(data, &prop)
+		err := jsoniter.Unmarshal(data, &prop)
 		return &prop, err
 	case "FloatProperty":
 		prop := float32(0)
-		err := json.Unmarshal(data, &prop)
+		err := jsoniter.Unmarshal(data, &prop)
 		return &prop, err
 	case "IntProperty":
 		prop := int32(0)
-		err := json.Unmarshal(data, &prop)
+		err := jsoniter.Unmarshal(data, &prop)
 		return &prop, err
 	case "Int8Property":
 		prop := int8(0)
-		err := json.Unmarshal(data, &prop)
+		err := jsoniter.Unmarshal(data, &prop)
 		return &prop, err
 	case "BoolProperty":
 		prop := false
-		err := json.Unmarshal(data, &prop)
+		err := jsoniter.Unmarshal(data, &prop)
 		return &prop, err
 	case "StrProperty":
 		fallthrough
 	case "NameProperty":
 		prop := ""
-		err := json.Unmarshal(data, &prop)
+		err := jsoniter.Unmarshal(data, &prop)
 		return &prop, err
 	default:
 		return nil, errors.New("Unknown Property Type: " + propertyType)
@@ -219,52 +219,52 @@ type GenericStruct struct {
 }
 
 func (wrapper *StructProperty) UnmarshalJSON(b []byte) error {
-	var temp map[string]json.RawMessage
-	err := json.Unmarshal(b, &temp)
+	var temp map[string]jsoniter.RawMessage
+	err := jsoniter.Unmarshal(b, &temp)
 
 	if err != nil {
 		return err
 	}
 
-	_ = json.Unmarshal(temp["type"], &wrapper.Type)
-	_ = json.Unmarshal(temp["magic"], &wrapper.Magic)
+	_ = jsoniter.Unmarshal(temp["type"], &wrapper.Type)
+	_ = jsoniter.Unmarshal(temp["magic"], &wrapper.Magic)
 
 	switch wrapper.Type {
 	case "Vector":
 		fallthrough
 	case "Rotator":
 		data := util.Vector3{}
-		err = json.Unmarshal(temp["value"], &data)
+		err = jsoniter.Unmarshal(temp["value"], &data)
 		wrapper.Value = data
 		break
 	case "Color":
 		data := Color{}
-		err = json.Unmarshal(temp["value"], &data)
+		err = jsoniter.Unmarshal(temp["value"], &data)
 		wrapper.Value = data
 		break
 	case "LinearColor":
 		data := LinearColor{}
-		err = json.Unmarshal(temp["value"], &data)
+		err = jsoniter.Unmarshal(temp["value"], &data)
 		wrapper.Value = data
 		break
 	case "Quat":
 		data := util.Vector4{}
-		err = json.Unmarshal(temp["value"], &data)
+		err = jsoniter.Unmarshal(temp["value"], &data)
 		wrapper.Value = data
 		break
 	case "Box":
 		data := Box{}
-		err = json.Unmarshal(temp["value"], &data)
+		err = jsoniter.Unmarshal(temp["value"], &data)
 		wrapper.Value = data
 		break
 	case "InventoryItem":
 		data := InventoryItem{}
-		err = json.Unmarshal(temp["value"], &data)
+		err = jsoniter.Unmarshal(temp["value"], &data)
 		wrapper.Value = data
 		break
 	case "RailroadTrackPosition":
 		data := RailroadTrackPosition{}
-		err = json.Unmarshal(temp["value"], &data)
+		err = jsoniter.Unmarshal(temp["value"], &data)
 		wrapper.Value = data
 		break
 	case "SplitterSortRule":
@@ -301,7 +301,7 @@ func (wrapper *StructProperty) UnmarshalJSON(b []byte) error {
 		fallthrough
 	case "Transform":
 		data := GenericStruct{}
-		err = json.Unmarshal(temp["value"], &data)
+		err = jsoniter.Unmarshal(temp["value"], &data)
 		wrapper.Value = data
 		break
 	default:
