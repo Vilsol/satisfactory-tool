@@ -32,7 +32,7 @@ func ProcessType(typeName string, data util.RawHolder, target *ReadOrWritable, b
 	case "EnumProperty":
 		return ProcessEnumProperty(data, target, buf)
 	case "ByteProperty":
-		return ProcessByteProperty(data, target, buf)
+		return ProcessByteProperty(data, target, buf, inArray)
 	case "StructProperty":
 		return ProcessStructProperty(data, target, buf, nil, depth)
 	case "TextProperty":
@@ -177,7 +177,7 @@ func ProcessBoolProperty(data util.RawHolder, target ReadOrWritable, buf *bytes.
 	}
 }
 
-func ProcessByteProperty(data util.RawHolder, target ReadOrWritable, buf *bytes.Buffer) (int, int) {
+func ProcessByteProperty(data util.RawHolder, target ReadOrWritable, buf *bytes.Buffer, inArray bool) (int, int) {
 	var targetByte ByteProperty
 
 	if buf == nil {
@@ -186,24 +186,29 @@ func ProcessByteProperty(data util.RawHolder, target ReadOrWritable, buf *bytes.
 		targetByte = *(*target.(*ReadOrWritable)).(*ByteProperty)
 	}
 
-	padding := 0
+	if !inArray {
+		padding := 0
 
-	padding += util.RoWInt32StringNull(data.From(padding), &targetByte.EnumType, buf)
-	padding += 4
+		padding += util.RoWInt32StringNull(data.From(padding), &targetByte.EnumType, buf)
+		padding += 4
 
-	// Skip byte
-	var skip byte = 0x00
-	util.RoWB(data.At(0), &skip, buf)
-	padding += 1
+		// Skip byte
+		var skip byte = 0x00
+		util.RoWB(data.At(0), &skip, buf)
+		padding += 1
 
-	if targetByte.EnumType == "None" {
-		util.RoWB(data.At(padding), &targetByte.Byte, buf)
-		return padding + 1, 1
-	} else {
-		strLength := util.RoWInt32StringNull(data.From(padding), &targetByte.EnumName, buf)
-		padding += 4 + strLength
-		return padding, 4 + strLength
+		if targetByte.EnumType == "None" {
+			util.RoWB(data.At(padding), &targetByte.Byte, buf)
+			return padding + 1, 1
+		} else {
+			strLength := util.RoWInt32StringNull(data.From(padding), &targetByte.EnumName, buf)
+			padding += 4 + strLength
+			return padding, 4 + strLength
+		}
 	}
+
+	util.RoWB(data.At(0), &targetByte.Byte, buf)
+	return 1, 1
 }
 
 func ProcessEnumProperty(data util.RawHolder, target ReadOrWritable, buf *bytes.Buffer) (int, int) {

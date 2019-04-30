@@ -2,6 +2,7 @@ package save
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"satisfactory-tool/util"
@@ -37,21 +38,32 @@ func (save *SatisfactorySave) SaveSave() []byte {
 }
 
 func ParseSave(path string) *SatisfactorySave {
-	logrus.Infof("Loading save file: %s\n", path)
+	var resultSave *SatisfactorySave
 
-	saveData, err := ioutil.ReadFile(path)
+	util.Block{
+		Try: func() {
+			logrus.Infof("Loading save file: %s\n", path)
 
-	if err != nil {
-		logrus.Panic(err)
-	}
+			saveData, err := ioutil.ReadFile(path)
 
-	save := SatisfactorySave{}
+			if err != nil {
+				logrus.Panic(err)
+			}
 
-	Process(util.RawHolder{
-		Data: saveData,
-	}, &save, nil)
+			save := SatisfactorySave{}
 
-	return &save
+			Process(util.RawHolder{
+				Data: saveData,
+			}, &save, nil)
+
+			resultSave = &save
+		},
+		Catch: func(exception util.Exception) {
+			fmt.Println(exception)
+		},
+	}.Do()
+
+	return resultSave
 }
 
 func Process(data util.RawHolder, save *SatisfactorySave, buf *bytes.Buffer) {

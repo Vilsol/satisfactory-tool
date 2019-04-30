@@ -52,6 +52,9 @@ func (wrapper *ParsableWrapper) UnmarshalJSON(b []byte) error {
 
 type Parsable interface {
 	Process(data util.RawHolder, component *Parsable, buf *bytes.Buffer) int
+	GetClassType() string
+	GetEntityType() string
+	GetInstanceType() string
 }
 
 type SaveComponentType struct {
@@ -139,6 +142,18 @@ func (saveComponentType *SaveComponentType) Process(data util.RawHolder, compone
 	return padding
 }
 
+func (saveComponentType *SaveComponentType) GetClassType() string {
+	return saveComponentType.ClassType
+}
+
+func (saveComponentType *SaveComponentType) GetEntityType() string {
+	return saveComponentType.EntityType
+}
+
+func (saveComponentType *SaveComponentType) GetInstanceType() string {
+	return saveComponentType.InstanceType
+}
+
 func (entityType *EntityType) Process(data util.RawHolder, component *Parsable, buf *bytes.Buffer) int {
 	padding := 0
 
@@ -170,7 +185,7 @@ func (entityType *EntityType) Process(data util.RawHolder, component *Parsable, 
 
 	padding += RoWToNone(data.FromNew(padding), &entityType.Fields, buf, 0)
 
-	if (buf == nil && data.Length()-padding > 4) || (buf != nil && entityType.ExtraObjects != nil) {
+	if (buf == nil && data.Length()-padding > 0) || (buf != nil && entityType.ExtraObjects != nil) {
 		if specialFunc, ok := specialProcessorClasses[entityType.ClassType]; ok {
 			padded := specialFunc(data.FromNew(padding), &entityType.ExtraObjects, buf)
 			padding += padded
@@ -189,6 +204,18 @@ func (entityType *EntityType) Process(data util.RawHolder, component *Parsable, 
 	padding += len(data.From(padding))
 
 	return padding
+}
+
+func (entityType *EntityType) GetClassType() string {
+	return entityType.ClassType
+}
+
+func (entityType *EntityType) GetEntityType() string {
+	return entityType.EntityType
+}
+
+func (entityType *EntityType) GetInstanceType() string {
+	return entityType.InstanceType
 }
 
 func RoWToNone(data util.RawHolder, target *[]Property, buf *bytes.Buffer, depth int) int {
