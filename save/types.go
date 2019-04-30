@@ -333,6 +333,8 @@ func (wrapper *EntityType) UnmarshalJSON(b []byte) error {
 			err = jsoniter.Unmarshal(temp["extra_objects"], &data)
 			wrapper.ExtraObjects = data
 			break
+		case "/Game/FactoryGame/Buildable/Vehicle/Explorer/BP_Explorer.BP_Explorer_C":
+			fallthrough
 		case "/Game/FactoryGame/Buildable/Vehicle/Tractor/BP_Tractor.BP_Tractor_C":
 			fallthrough
 		case "/Game/FactoryGame/Buildable/Vehicle/Truck/BP_Truck.BP_Truck_C":

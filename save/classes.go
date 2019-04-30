@@ -252,6 +252,7 @@ var specialProcessorClasses = map[string]func(data util.RawHolder, target interf
 	},
 	"/Game/FactoryGame/Buildable/Vehicle/Tractor/BP_Tractor.BP_Tractor_C":                               RoWVehicle,
 	"/Game/FactoryGame/Buildable/Vehicle/Truck/BP_Truck.BP_Truck_C":                                     RoWVehicle,
+	"/Game/FactoryGame/Buildable/Vehicle/Explorer/BP_Explorer.BP_Explorer_C":                            RoWVehicle,
 	"/Game/FactoryGame/Buildable/Factory/ConveyorBeltMk1/Build_ConveyorBeltMk1.Build_ConveyorBeltMk1_C": RoWBelt,
 	"/Game/FactoryGame/Buildable/Factory/ConveyorBeltMk2/Build_ConveyorBeltMk2.Build_ConveyorBeltMk2_C": RoWBelt,
 	"/Game/FactoryGame/Buildable/Factory/ConveyorBeltMk3/Build_ConveyorBeltMk3.Build_ConveyorBeltMk3_C": RoWBelt,
